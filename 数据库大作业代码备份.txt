@@ -1,0 +1,4860 @@
+package DBUtil;
+
+import java.awt.*;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
+
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Vector;
+import java.io.File;
+
+import jxl.Workbook;
+import jxl.write.Label;
+import jxl.write.WritableSheet;
+import jxl.write.WritableWorkbook;
+
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+import DBUtil.PerTabbedPaneUI;
+import DBUtil.PerTabbedPane;
+
+public class FinalWork {
+
+	private JFrame frame;
+	private Vector<Vector> data_less5 = new Vector<Vector>();
+	private JComboBox com_sale_id = new JComboBox();
+	private JComboBox com_off_id = new JComboBox();
+	private JTextField textField_life;
+	private JTextField textField_price;
+	private JTextField textField_quantity;
+	private JTextField textField_begin;
+	private JTextField textField_end;
+	private JTextField textField_count_begin;
+	private JTextField textField_count_end;
+	private JTextField textField_imitative_sale_time;
+	private JTextField textField_imitative_sale_quantity;
+	private JTextField textField_imitative_sale_price;
+	private JTextField textField_pur_quantity;
+	private JTextField textField_pur_price;
+	private JTextField textField_pur_name;
+	private JTextField textField_pur_brand;
+	private JTextField textField_pur_color;
+	private JTextField textField_pur_size;
+	private JTextField textField_pur_people;
+	private JTextField textField_pur_life;
+	private JTextField textField_pur_place;
+	private JTextField textField_pur_com_price;
+	private JTextField textField_pur_com_quantity;
+	private JTextField textField_pur_id;
+	private JTextField textField_pur_time;
+	private JTextField textField_man_begin;
+	private JTextField textField_man_end;
+	private JTextField textField_man_time;
+	private JTextField textField_man_reason;
+	private JTextField textField_excel_com;
+	private JTextField textField_excel_brand;
+
+	public static void setUIFont() {
+		Font f = new Font("楷体", Font.BOLD, 15);
+		String names[] = { "Label", "CheckBox", "PopupMenu", "MenuItem",
+				"CheckBoxMenuItem", "JRadioButtonMenuItem", "ComboBox",
+				"Button", "Tree", "ScrollPane", "TabbedPane", "EditorPane",
+				"TitledBorder", "Menu", "TextArea", "OptionPane", "MenuBar",
+				"ToolBar", "ToggleButton", "ToolTip", "ProgressBar",
+				"TableHeader", "Panel", "List", "ColorChooser",
+				"PasswordField", "TextField", "Table", "Label", "Viewport",
+				"RadioButtonMenuItem", "RadioButton", "DesktopPane",
+				"InternalFrame" };
+		for (String item : names) {
+			UIManager.put(item + ".font", f);
+		}
+	}
+
+	private void disableFocusBackground(JComboBox combo) {
+		if (combo == null) {
+			return;
+		}
+
+		java.awt.Component comp = combo.getEditor().getEditorComponent();
+
+		if (comp instanceof javax.swing.JTextField) {
+			javax.swing.JTextField field = (javax.swing.JTextField) comp;
+
+			field.setEditable(false);
+
+			field.setSelectionColor(field.getBackground()/* java.awt.Color.WHITE */);
+
+			combo.setEditable(true);
+		}
+	}
+
+	/**
+	 * Launch the application.
+	 */
+	public static void main(String[] args) {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				setUIFont();
+				try {
+					FinalWork window = new FinalWork();
+					window.frame.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+	}
+
+	// 获取数据库连接
+	public static Connection getConn() {
+		String driver = "com.mysql.cj.jdbc.Driver";
+		String url = "jdbc:mysql://127.0.0.1:3306/final_work?serverTimezone=UTC&useUnicode=true&characterEncoding=utf8&useSSL=true";
+		String username = "root";
+		String password = "qzt981123";
+		Connection conn = null;
+		try {
+			Class.forName(driver); // classLoader,加载对应驱动
+			conn = (Connection) DriverManager.getConnection(url, username,
+					password);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return conn;
+	}
+
+	// 关闭数据库访问
+	public static void release(Connection conn, PreparedStatement st,
+			ResultSet rs) throws SQLException {
+		if (rs != null) {
+			rs.close();
+		}
+		if (st != null) {
+			st.close();
+		}
+		if (conn != null) {
+			conn.close();
+		}
+	}
+
+	//显示模拟销售库存不足5
+	public static void update_less5(Vector<Vector> data){
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+		
+		data.clear();
+		try{
+			conn = getConn();
+			String sql = "SELECT * FROM sale_less5";
+			
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+			
+			while(rs.next()){
+				Vector row = new Vector();
+				row.add(rs.getString(1));
+				data.add(row);
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			try {
+				release(conn,st,rs);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	//判断是不是模拟销售不足5表的数据
+	public static boolean judge_less5(String id){
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+		 int judge = 0;
+		try{
+			conn = getConn();
+			String sql = "SELECT COUNT(id) FROM sale_less5 WHERE id = '"+id+"'";
+			
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+			
+			while(rs.next()){
+				judge = rs.getInt(1);
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			try {
+				release(conn,st,rs);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		if(judge == 0){
+			return false;
+		}else{
+			return true;
+		}
+	}
+	// 根据Id判断此商品是否是clothes表中的商品
+	public static boolean isClothes(String id) throws SQLException {
+		int num = 0;
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+		String sql = "SELECT COUNT(*) FROM clothes WHERE id = '" + id + "'";
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+			if (rs.next()) {
+				num = rs.getInt(1);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		if (num == 0) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	// 查询所有商品的ID并存入一个数组中
+	public static ArrayList<String> findId() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT id FROM commodity";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 根据Id查库存，判断是否能够进行模拟销售
+	public static int count_quantity(String id) throws SQLException {
+		int result = 0;
+
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		try {
+			conn = getConn();
+
+			String sql = "SELECT quantity FROM commodity WHERE id = '" + id
+					+ "'";
+
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				result = rs.getInt(1);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有商品的ID
+	public static ArrayList<String> commodity_id() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT id FROM commodity";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有商品的名称
+	public static ArrayList<String> commodity_name() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT name FROM commodity";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有商品的品牌
+	public static ArrayList<String> commodity_brand() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT brand FROM commodity";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有服装的ID
+	public static ArrayList<String> clothes_id() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT id FROM clothes";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有服装的name
+	public static ArrayList<String> clothes_name() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT cname FROM clothes";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有服装的brand
+	public static ArrayList<String> clothes_brand() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT brand FROM clothes";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有服装的color
+	public static ArrayList<String> clothes_color() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT color FROM clothes";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有服装的size
+	public static ArrayList<String> clothes_size() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT size FROM clothes";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有服装的people
+	public static ArrayList<String> clothes_people() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT people FROM clothes";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有食品的ID
+	public static ArrayList<String> food_id() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT id FROM food";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有食品的name
+	public static ArrayList<String> food_name() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT fname FROM food";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有食品的brand
+	public static ArrayList<String> food_brand() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT brand FROM food";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有食品的life
+	public static ArrayList<String> food_life() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT shelf_life FROM food";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 找出所有食品的origin_place
+	public static ArrayList<String> food_place() throws SQLException {
+		Connection conn = null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+
+		ArrayList<String> result = new ArrayList<String>();
+		String sql = "SELECT DISTINCT origin_place FROM food";
+
+		try {
+			conn = getConn();
+			st = (PreparedStatement) conn.prepareStatement(sql);
+			rs = st.executeQuery();
+
+			while (rs.next()) {
+				String i = rs.getString(1);
+				result.add(i);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			release(conn, st, rs);
+		}
+		return result;
+	}
+
+	// 赋值combox_com_id
+	public static void set_com_id(JComboBox com) throws SQLException {
+		ArrayList result = commodity_id();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 赋值combox_com_name
+	public static void set_com_name(JComboBox com) throws SQLException {
+		ArrayList result = commodity_name();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 赋值combox_com_brand
+	public static void set_com_brand(JComboBox com) throws SQLException {
+		ArrayList result = commodity_brand();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 赋值combox_clothes_id
+	public static void set_clothes_id(JComboBox com) throws SQLException {
+		ArrayList result = clothes_id();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 赋值combox_clothes_name
+	public static void set_clothes_name(JComboBox com) throws SQLException {
+		ArrayList result = clothes_name();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 赋值combox_clothes_brand
+	public static void set_clothes_brand(JComboBox com) throws SQLException {
+		ArrayList result = clothes_brand();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 赋值combox_clothes_color
+	public static void set_clothes_color(JComboBox com) throws SQLException {
+		ArrayList result = clothes_color();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 赋值combox_clothes_size
+	public static void set_clothes_size(JComboBox com) throws SQLException {
+		ArrayList result = clothes_size();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 赋值combox_clothes_people
+	public static void set_clothes_people(JComboBox com) throws SQLException {
+		ArrayList result = clothes_people();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 赋值combox_food_id
+	public static void set_food_id(JComboBox com) throws SQLException {
+		ArrayList result = food_id();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 赋值combox_food_name
+	public static void set_food_name(JComboBox com) throws SQLException {
+		ArrayList result = food_name();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 赋值combox_food_brand
+	public static void set_food_brand(JComboBox com) throws SQLException {
+		ArrayList result = food_brand();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 赋值combox_food_life
+	public static void set_food_life(JComboBox com) throws SQLException {
+		ArrayList result = food_life();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 赋值combox_food_place
+	public static void set_food_place(JComboBox com) throws SQLException {
+		ArrayList result = food_place();
+		com.addItem(null);
+		for (int i = 0; i < result.size(); i++) {
+			com.addItem(result.get(i));
+		}
+	}
+
+	// 实时更新combox_com_id
+	public static void update_com_id(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_com_id(com);
+	}
+
+	// 实时更新combox_com_name
+	public static void update_com_name(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_com_name(com);
+	}
+
+	// 实时更新combox_com_brand
+	public static void update_com_brand(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_com_brand(com);
+	}
+
+	// 实时更新combox_clothes_id
+	public static void update_clothes_id(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_clothes_id(com);
+	}
+
+	// 实时更新combox_clothes_name
+	public static void update_clothes_name(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_clothes_name(com);
+	}
+
+	// 实时更新combox_clothes_brand
+	public static void update_clothes_brand(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_clothes_brand(com);
+	}
+
+	// 实时更新combox_clothes_color
+	public static void update_clothes_color(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_clothes_color(com);
+	}
+
+	// 实时更新combox_clothes_size
+	public static void update_clothes_size(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_clothes_size(com);
+	}
+
+	// 实时更新combox_clothes_people
+	public static void update_clothes_people(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_clothes_people(com);
+	}
+
+	// 实时更新combox_food_id
+	public static void update_food_id(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_food_id(com);
+	}
+
+	// 实时更新combox_food_name
+	public static void update_food_name(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_food_name(com);
+	}
+
+	// 实时更新combox_food_brand
+	public static void update_food_brand(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_food_brand(com);
+	}
+
+	// 实时更新combox_food_life
+	public static void update_food_life(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_food_life(com);
+	}
+
+	// 实时更新combox_food_place
+	public static void update_food_place(JComboBox com) throws SQLException {
+		com.removeAllItems();
+		set_food_place(com);
+	}
+
+	/**
+	 * Create the application.
+	 */
+	public FinalWork() {
+		initialize();
+	}
+
+	/**
+	 * Initialize the contents of the frame.
+	 */
+	private void initialize() {
+		Image image = new ImageIcon("C:/Users/hp-nb/Desktop/666/4.jpg")
+				.getImage();
+		frame = new JFrame();
+		// frame.setUndecorated(true);
+		frame.setResizable(false);
+		frame.setBounds(300, 20, 700, 700);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.getContentPane().setLayout(new GridLayout(0, 1, 0, 0));
+
+		JPanel panel = new BackgroundPanel(image);
+		frame.getContentPane().add(panel);
+		panel.setLayout(new GridLayout(0, 1, 0, 0));
+		// 添加分页标签
+		JTabbedPane tabbedPane = new PerTabbedPane();
+		panel.add(tabbedPane);
+
+		// 第一页标签：信息查询，用来查询四张表的信息记录
+		JPanel panel_Select = new JPanel();
+		tabbedPane.add("信息查询", panel_Select);
+		panel_Select.setLayout(new GridLayout(0, 1, 0, 0));
+
+		JTabbedPane tabbedPane_Select = new JTabbedPane(JTabbedPane.TOP);
+		tabbedPane_Select.setOpaque(false);
+		panel_Select.add(tabbedPane_Select);
+
+		// 服装表查询
+		JPanel panel_Select_clothes = new BackgroundPanel(image);
+
+		tabbedPane_Select.add("   服装    ", panel_Select_clothes);
+		panel_Select_clothes.setLayout(null);
+
+		// 服装表添加查询按钮
+		JPanel panel_clothes_button = new JPanel();
+		panel_clothes_button.setBounds(300, 0, 70, 30);
+		panel_Select_clothes.add(panel_clothes_button);
+		panel_clothes_button.setLayout(new GridLayout(1, 0, 0, 0));
+		JButton button_clothes = new JButton("查询");
+		panel_clothes_button.add(button_clothes);
+
+		panel_clothes_button.setOpaque(false);
+
+		// 服装表添加查询结果表
+		JPanel panel_clothes_table = new JPanel();
+		panel_clothes_table.setBounds(0, 30, 685, 570);
+		panel_Select_clothes.add(panel_clothes_table);
+		/**********
+		 * 查询结果生成
+		 */
+		// 数据列名向量
+		Vector<String> names_clothes = new Vector<String>();
+		names_clothes.add("商品编号");
+		names_clothes.add("名称");
+		names_clothes.add("品牌");
+		names_clothes.add("颜色");
+		names_clothes.add("大小");
+		names_clothes.add("适合人群");
+		names_clothes.add("价格");
+		names_clothes.add("数量");
+
+		// 新建一个默认数据模型
+		DefaultTableModel model_clothes = new DefaultTableModel();
+		model_clothes.setDataVector(null, names_clothes);
+		panel_clothes_table.setLayout(new GridLayout(0, 1, 0, 0));
+		// 用数据模型创建JTable，JTable会自动监听到数据模型中的数据改变并显示出来
+		JTable table_clothes = new JTable(model_clothes);
+		JScrollPane scrollPane_clothes = new JScrollPane(table_clothes);
+		panel_clothes_table.add(scrollPane_clothes);
+
+		panel_clothes_table.setOpaque(false);
+		table_clothes.setOpaque(false);
+		DefaultTableCellRenderer render = new DefaultTableCellRenderer();
+		render.setOpaque(false);// 将渲染器设置为透明
+		table_clothes.setDefaultRenderer(Object.class, render);
+		scrollPane_clothes.setOpaque(false);
+		scrollPane_clothes.getViewport().setOpaque(false);
+
+		// 按钮点击响应事件
+		button_clothes.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Connection conn = null;
+				PreparedStatement st = null;
+				ResultSet rs = null;
+
+				// 数据行向量集，因为列表不止一行，往里面添加数据行向量
+				Vector<Vector> data_clothes = new Vector<Vector>();
+				try {
+					conn = getConn();
+					String sql = "SELECT * FROM clothes";
+					st = (PreparedStatement) conn.prepareStatement(sql);
+					rs = st.executeQuery();
+					while (rs.next()) {
+						// 数据行向量
+						Vector row = new Vector();
+						row.add(rs.getString(1));
+						row.add(rs.getString(2));
+						row.add(rs.getString(3));
+						row.add(rs.getString(4));
+						row.add(rs.getString(5));
+						row.add(rs.getString(6));
+						row.add(rs.getInt(7));
+						row.add(rs.getInt(8));
+						data_clothes.add(row);
+					}
+					model_clothes.setDataVector(data_clothes, names_clothes);
+				} catch (Exception er) {
+					er.printStackTrace();
+				} finally {
+					try {
+						release(conn, st, rs);
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+				}
+			}
+		});
+
+		// 食品表查询
+		JPanel panel_Select_food = new BackgroundPanel(image);
+		tabbedPane_Select.add("   食品    ", panel_Select_food);
+		panel_Select_food.setLayout(null);
+
+		// 食品表添加查询按钮
+		JPanel panel_food_button = new JPanel();
+		panel_food_button.setBounds(300, 0, 70, 30);
+		panel_Select_food.add(panel_food_button);
+		panel_food_button.setLayout(new GridLayout(1, 0, 0, 0));
+		JButton button_food = new JButton("查询");
+		panel_food_button.add(button_food);
+
+		panel_food_button.setOpaque(false);
+
+		// 食品表添加查询结果表
+		JPanel panel_food_table = new JPanel();
+		panel_food_table.setBounds(0, 30, 685, 570);
+		panel_Select_food.add(panel_food_table);
+
+		/***********
+		 * 查询结果生成
+		 */
+		// 数据列名向量
+		Vector<String> names_food = new Vector<String>();
+		names_food.add("商品编号");
+		names_food.add("名称");
+		names_food.add("品牌");
+		names_food.add("保质期截止日期");
+		names_food.add("产地");
+		names_food.add("价格");
+		names_food.add("数量");
+
+		// 新建一个默认数据模型
+		DefaultTableModel model_food = new DefaultTableModel();
+		model_food.setDataVector(null, names_food);
+		panel_food_table.setLayout(new GridLayout(0, 1, 0, 0));
+		// 用数据模型创建JTable，JTable会自动监听到数据模型中的数据改变并显示出来
+		JTable table_food = new JTable(model_food);
+		JScrollPane scrollPane_food = new JScrollPane(table_food);
+		panel_food_table.add(scrollPane_food);
+
+		panel_food_table.setOpaque(false);
+		scrollPane_food.setOpaque(false);
+		scrollPane_food.getViewport().setOpaque(false);
+		table_food.setOpaque(false);
+		table_food.setDefaultRenderer(Object.class, render);
+
+		// 按钮点击响应事件
+		button_food.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Connection conn = null;
+				PreparedStatement st = null;
+				ResultSet rs = null;
+
+				// 数据行向量集，因为列表不止一行，往里面添加数据行向量
+				Vector<Vector> data_food = new Vector<Vector>();
+				try {
+					conn = getConn();
+					String sql = "SELECT * FROM food";
+					st = (PreparedStatement) conn.prepareStatement(sql);
+					rs = st.executeQuery();
+					while (rs.next()) {
+						// 数据行向量
+						Vector row = new Vector();
+						row.add(rs.getString(1));
+						row.add(rs.getString(2));
+						row.add(rs.getString(3));
+						row.add(rs.getString(4));
+						row.add(rs.getString(5));
+						row.add(rs.getInt(6));
+						row.add(rs.getInt(7));
+						data_food.add(row);
+					}
+					model_food.setDataVector(data_food, names_food);
+				} catch (Exception er) {
+					er.printStackTrace();
+				} finally {
+					try {
+						release(conn, st, rs);
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+				}
+			}
+		});
+
+		// 销售记录表查询
+		JPanel panel_Select_sale_records = new BackgroundPanel(image);
+		tabbedPane_Select.add("   销售记录    ", panel_Select_sale_records);
+		panel_Select_sale_records.setLayout(null);
+
+		// 销售记录表添加查询按钮
+		JPanel panel_sale_records_button = new JPanel();
+		panel_sale_records_button.setBounds(300, 0, 70, 30);
+		panel_Select_sale_records.add(panel_sale_records_button);
+		panel_sale_records_button.setLayout(new GridLayout(1, 0, 0, 0));
+		JButton button_sale_records = new JButton("查询");
+		panel_sale_records_button.add(button_sale_records);
+
+		panel_sale_records_button.setOpaque(false);
+
+		// 销售记录表添加查询结果表
+		JPanel panel_sale_records_table = new JPanel();
+		panel_sale_records_table.setBounds(0, 30, 685, 570);
+		panel_Select_sale_records.add(panel_sale_records_table);
+		/**********
+		 * 查询结果生成
+		 */
+		// 数据列名向量
+		Vector<String> names_sale_records = new Vector<String>();
+		names_sale_records.add("商品编号");
+		names_sale_records.add("销售时间");
+		names_sale_records.add("销售数量");
+		names_sale_records.add("销售单价");
+		names_sale_records.add("销售总价");
+
+		// 新建一个默认数据模型
+		DefaultTableModel model_sale_records = new DefaultTableModel();
+		model_sale_records.setDataVector(null, names_sale_records);
+		panel_sale_records_table.setLayout(new GridLayout(0, 1, 0, 0));
+		// 用数据模型创建JTable，JTable会自动监听到数据模型中的数据改变并显示出来
+		JTable table_sale_records = new JTable(model_sale_records);
+		JScrollPane scrollPane_sale_records = new JScrollPane(
+				table_sale_records);
+		panel_sale_records_table.add(scrollPane_sale_records);
+
+		panel_sale_records_table.setOpaque(false);
+		scrollPane_sale_records.setOpaque(false);
+		scrollPane_sale_records.getViewport().setOpaque(false);
+		table_sale_records.setOpaque(false);
+		table_sale_records.setDefaultRenderer(Object.class, render);
+
+		// 按钮点击响应事件
+		button_sale_records.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Connection conn = null;
+				PreparedStatement st = null;
+				ResultSet rs = null;
+
+				// 数据行向量集，因为列表不止一行，往里面添加数据行向量
+				Vector<Vector> data_sale_records = new Vector<Vector>();
+				try {
+					conn = getConn();
+					String sql = "SELECT * FROM sale_records";
+					st = (PreparedStatement) conn.prepareStatement(sql);
+					rs = st.executeQuery();
+					while (rs.next()) {
+						// 数据行向量
+						Vector row = new Vector();
+						row.add(rs.getString(1));
+						row.add(rs.getString(2));
+						row.add(rs.getInt(3));
+						row.add(rs.getInt(4));
+						row.add(rs.getInt(5));
+						data_sale_records.add(row);
+					}
+					model_sale_records.setDataVector(data_sale_records,
+							names_sale_records);
+				} catch (Exception er) {
+					er.printStackTrace();
+				} finally {
+					try {
+						release(conn, st, rs);
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+				}
+			}
+		});
+
+		// 进货记录表查询
+		JPanel panel_Select_purchase_records = new BackgroundPanel(image);
+		tabbedPane_Select.add("   进货记录    ", panel_Select_purchase_records);
+		panel_Select_purchase_records.setLayout(null);
+
+		// 进货记录表添加查询按钮
+		JPanel panel_purchase_records_button = new JPanel();
+		panel_purchase_records_button.setBounds(300, 0, 70, 30);
+		panel_Select_purchase_records.add(panel_purchase_records_button);
+		panel_purchase_records_button.setLayout(new GridLayout(1, 0, 0, 0));
+		JButton button_purchase_records = new JButton("查询");
+		panel_purchase_records_button.add(button_purchase_records);
+
+		panel_purchase_records_button.setOpaque(false);
+
+		// 进货记录表添加查询结果表
+		JPanel panel_purchase_records_table = new JPanel();
+		panel_purchase_records_table.setBounds(0, 30, 685, 570);
+		panel_Select_purchase_records.add(panel_purchase_records_table);
+		/**********
+		 * 查询结果生成
+		 */
+		// 数据列名向量
+		Vector<String> names_purchase_records = new Vector<String>();
+		names_purchase_records.add("商品编号");
+		names_purchase_records.add("进货时间");
+		names_purchase_records.add("进货数量");
+		names_purchase_records.add("进货单价");
+		names_purchase_records.add("进货总价");
+		// 新建一个默认数据模型
+		DefaultTableModel model_purchase_records = new DefaultTableModel();
+		model_purchase_records.setDataVector(null, names_purchase_records);
+		panel_purchase_records_table.setLayout(new GridLayout(0, 1, 0, 0));
+		// 用数据模型创建JTable，JTable会自动监听到数据模型中的数据改变并显示出来
+		JTable table_purchase_records = new JTable(model_purchase_records);
+		JScrollPane scrollPane_purchase_records = new JScrollPane(
+				table_purchase_records);
+		panel_purchase_records_table.add(scrollPane_purchase_records);
+
+		panel_purchase_records_table.setOpaque(false);
+		scrollPane_purchase_records.setOpaque(false);
+		scrollPane_purchase_records.getViewport().setOpaque(false);
+		table_purchase_records.setOpaque(false);
+		table_purchase_records.setDefaultRenderer(Object.class, render);
+		// 按钮点击响应事件
+		button_purchase_records.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Connection conn = null;
+				PreparedStatement st = null;
+				ResultSet rs = null;
+
+				// 数据行向量集，因为列表不止一行，往里面添加数据行向量
+				Vector<Vector> data_purchase_records = new Vector<Vector>();
+				try {
+					conn = getConn();
+					String sql = "SELECT * FROM purchase_records";
+					st = (PreparedStatement) conn.prepareStatement(sql);
+					rs = st.executeQuery();
+					while (rs.next()) {
+						// 数据行向量
+						Vector row = new Vector();
+						row.add(rs.getString(1));
+						row.add(rs.getString(2));
+						row.add(rs.getInt(3));
+						row.add(rs.getInt(4));
+						row.add(rs.getInt(5));
+						data_purchase_records.add(row);
+					}
+					model_purchase_records.setDataVector(data_purchase_records,
+							names_purchase_records);
+				} catch (Exception er) {
+					er.printStackTrace();
+				} finally {
+					try {
+						release(conn, st, rs);
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+				}
+			}
+		});
+
+		// 下架商品查询
+		JPanel panel_Select_off = new BackgroundPanel(image);
+		tabbedPane_Select.add("   下架商品    ", panel_Select_off);
+		panel_Select_off.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JTabbedPane tabbedPane_off = new PerTabbedPane();
+		panel_Select_off.add(tabbedPane_off);
+		JPanel panel_Select_off_clothes = new BackgroundPanel(image);
+		JPanel panel_Select_off_food = new BackgroundPanel(image);
+		tabbedPane_off.add("             服装             ",
+				panel_Select_off_clothes);
+		panel_Select_off_clothes.setLayout(null);
+ 
+		tabbedPane_off.add("             食品             ",
+				panel_Select_off_food);
+		panel_Select_off_food.setLayout(null);
+
+		JPanel panel_117 = new JPanel();
+		panel_117.setBounds(300, 0, 70, 30);
+		panel_Select_off_food.add(panel_117);
+		panel_117.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JPanel panel_118 = new JPanel();
+		panel_118.setBounds(300, 0, 70, 30);
+		panel_Select_off_clothes.add(panel_118);
+		panel_118.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JPanel panel_119 = new JPanel();
+		panel_119.setBounds(0, 30, 685, 570);
+		panel_Select_off_clothes.add(panel_119);
+		panel_119.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JPanel panel_120 = new JPanel();
+		panel_120.setBounds(0, 30, 685, 570);
+		panel_Select_off_food.add(panel_120);
+		panel_120.setLayout(new GridLayout(1, 0, 0, 0));
+
+		/******
+		 * 下架商品(服装)
+		 */
+		Vector names_select_off_clothes = new Vector();
+		names_select_off_clothes.add("商品编号");
+		names_select_off_clothes.add("名称");
+		names_select_off_clothes.add("品牌");
+		names_select_off_clothes.add("颜色");
+		names_select_off_clothes.add("大小");
+		names_select_off_clothes.add("适合人群");
+		names_select_off_clothes.add("价格");
+		names_select_off_clothes.add("数量");
+		names_select_off_clothes.add("下架时间");
+		names_select_off_clothes.add("下架原因");
+
+		DefaultTableModel model_select_off_clothes = new DefaultTableModel();
+		model_select_off_clothes.setDataVector(null, names_select_off_clothes);
+		JTable table_select_off_clothes = new JTable(model_select_off_clothes);
+		JScrollPane scrollPane_select_off_clothes = new JScrollPane(
+				table_select_off_clothes);
+		panel_119.add(scrollPane_select_off_clothes);
+
+		panel_119.setOpaque(false);
+		scrollPane_select_off_clothes.setOpaque(false);
+		scrollPane_select_off_clothes.getViewport().setOpaque(false);
+		table_select_off_clothes.setOpaque(false);
+		table_select_off_clothes.setDefaultRenderer(Object.class, render);
+
+		JButton button_7 = new JButton("\u67E5\u8BE2");
+		panel_118.setOpaque(false);
+		button_7.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				Connection conn = null;
+				PreparedStatement st = null;
+				ResultSet rs = null;
+
+				Vector<Vector> data_clothes = new Vector<Vector>();
+				try {
+					conn = getConn();
+
+					String sql = "SELECT * FROM off_clothes";
+
+					st = (PreparedStatement) conn.prepareStatement(sql);
+					rs = st.executeQuery();
+
+					while (rs.next()) {
+						Vector row = new Vector();
+						row.add(rs.getString(1));
+						row.add(rs.getString(2));
+						row.add(rs.getString(3));
+						row.add(rs.getString(4));
+						row.add(rs.getString(5));
+						row.add(rs.getString(6));
+						row.add(rs.getInt(7));
+						row.add(rs.getInt(8));
+						row.add(rs.getString(9));
+						row.add(rs.getString(10));
+						data_clothes.add(row);
+					}
+					model_select_off_clothes.setDataVector(data_clothes,
+							names_select_off_clothes);
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					try {
+						release(conn, st, rs);
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+		panel_118.add(button_7);
+
+		/******
+		 * 下架商品(食品)
+		 */
+		Vector names_select_off_food = new Vector();
+		names_select_off_food.add("商品编号");
+		names_select_off_food.add("名称");
+		names_select_off_food.add("品牌");
+		names_select_off_food.add("保质期截止日期");
+		names_select_off_food.add("产地");
+		names_select_off_food.add("价格");
+		names_select_off_food.add("数量");
+		names_select_off_food.add("下架时间");
+		names_select_off_food.add("下架原因");
+
+		DefaultTableModel model_select_off_food = new DefaultTableModel();
+		model_select_off_food.setDataVector(null, names_select_off_food);
+		JTable table_select_off_food = new JTable(model_select_off_food);
+		JScrollPane scrollPane_select_off_food = new JScrollPane(
+				table_select_off_food);
+		panel_120.add(scrollPane_select_off_food);
+
+		panel_120.setOpaque(false);
+		scrollPane_select_off_food.setOpaque(false);
+		scrollPane_select_off_food.getViewport().setOpaque(false);
+		table_select_off_food.setOpaque(false);
+		table_select_off_food.setDefaultRenderer(Object.class, render);
+
+		JButton button_6 = new JButton("\u67E5\u8BE2");
+		panel_117.setOpaque(false);
+		button_6.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				Connection conn = null;
+				PreparedStatement st = null;
+				ResultSet rs = null;
+
+				Vector<Vector> data_food = new Vector<Vector>();
+
+				try {
+					conn = getConn();
+
+					String sql = "SELECT * FROM off_food";
+
+					st = (PreparedStatement) conn.prepareStatement(sql);
+					rs = st.executeQuery();
+
+					while (rs.next()) {
+						Vector row = new Vector();
+						row.add(rs.getString(1));
+						row.add(rs.getString(2));
+						row.add(rs.getString(3));
+						row.add(rs.getString(4));
+						row.add(rs.getString(5));
+						row.add(rs.getInt(6));
+						row.add(rs.getInt(7));
+						row.add(rs.getString(8));
+						row.add(rs.getString(9));
+						data_food.add(row);
+					}
+					model_select_off_food.setDataVector(data_food,
+							names_select_off_food);
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					try {
+						release(conn, st, rs);
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+		panel_117.add(button_6);
+
+		// 第二页标签：实时查询
+		JPanel panel_Instant_query = new BackgroundPanel(image);
+		tabbedPane.add("实时查询", panel_Instant_query);
+		panel_Instant_query.setLayout(null);
+
+		JPanel panel_character = new JPanel();
+		panel_character.setOpaque(false);
+		panel_character.setBounds(0, 60, 685, 240);
+		panel_Instant_query.add(panel_character);
+		panel_character.setLayout(null);
+
+		JPanel panel_choose = new JPanel();
+		panel_choose.setBounds(0, 0, 685, 30);
+		panel_character.add(panel_choose);
+		panel_choose.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_choose = new JLabel("查询属性选择");
+		label_choose.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_choose.add(label_choose);
+
+		panel_choose.setOpaque(false);
+		label_choose.setOpaque(false);
+
+		JPanel panel_choosing = new JPanel();
+		panel_choosing.setOpaque(false);
+		panel_choosing.setBounds(0, 30, 685, 120);
+		panel_character.add(panel_choosing);
+		panel_choosing.setLayout(new GridLayout(4, 3, 0, 0));
+
+		JPanel panel_2 = new JPanel();
+		panel_2.setOpaque(false);
+		panel_choosing.add(panel_2);
+		panel_2.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label = new JLabel("\u5546\u54C1\u7F16\u53F7");
+		label.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_2.add(label);
+		label.setOpaque(false);
+
+		JComboBox com_query_id = new JComboBox();
+		com_query_id.setOpaque(false);
+		panel_2.add(com_query_id);
+		com_query_id.setSelectedItem(null);
+		com_query_id.setEnabled(false);
+
+		JPanel panel_1 = new JPanel();
+		panel_choosing.add(panel_1);
+		panel_1.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_1 = new JLabel("\u5546\u54C1\u540D\u79F0");
+		label_1.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_1.add(label_1);
+
+		panel_1.setOpaque(false);
+		label_1.setOpaque(false);
+
+		JComboBox com_query_name = new JComboBox();
+		com_query_name.setOpaque(false);
+		panel_1.add(com_query_name);
+		com_query_name.setSelectedItem(null);
+		com_query_name.setEnabled(false);
+
+		JPanel panel_3 = new JPanel();
+		panel_choosing.add(panel_3);
+		panel_3.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_2 = new JLabel("\u5546\u54C1\u54C1\u724C");
+		label_2.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_3.add(label_2);
+
+		JComboBox com_query_brand = new JComboBox();
+		panel_3.add(com_query_brand);
+		com_query_brand.setSelectedItem(null);
+		com_query_brand.setEnabled(false);
+
+		panel_3.setOpaque(false);
+		label_2.setOpaque(false);
+		com_query_brand.setOpaque(false);
+		JPanel panel_5 = new JPanel();
+		panel_choosing.add(panel_5);
+		panel_5.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_3 = new JLabel("\u670D\u88C5\u989C\u8272");
+		label_3.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_5.add(label_3);
+
+		JComboBox com_query_color = new JComboBox();
+		panel_5.add(com_query_color);
+		com_query_color.setSelectedItem(null);
+		com_query_color.setEnabled(false);
+
+		panel_5.setOpaque(false);
+		label_3.setOpaque(false);
+		com_query_color.setOpaque(false);
+
+		JPanel panel_6 = new JPanel();
+		panel_choosing.add(panel_6);
+		panel_6.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_4 = new JLabel("\u670D\u88C5\u5927\u5C0F");
+		label_4.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_6.add(label_4);
+
+		JComboBox com_query_size = new JComboBox();
+		panel_6.add(com_query_size);
+		com_query_size.setSelectedItem(null);
+		com_query_size.setEnabled(false);
+
+		panel_6.setOpaque(false);
+		label_4.setOpaque(false);
+		com_query_size.setOpaque(false);
+
+		JPanel panel_9 = new JPanel();
+		panel_choosing.add(panel_9);
+		panel_9.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_5 = new JLabel("\u9002\u5408\u4EBA\u7FA4");
+		label_5.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_9.add(label_5);
+
+		JComboBox com_query_people = new JComboBox();
+		panel_9.add(com_query_people);
+		com_query_people.setSelectedItem(null);
+		com_query_people.setEnabled(false);
+
+		panel_9.setOpaque(false);
+		label_5.setOpaque(false);
+		com_query_people.setOpaque(false);
+
+		JPanel panel_4 = new JPanel();
+		panel_choosing.add(panel_4);
+		panel_4.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_6 = new JLabel("\u4FDD\u8D28\u671F\u9650");
+		label_6.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_4.add(label_6);
+
+		textField_life = new JTextField();
+		panel_4.add(textField_life);
+		textField_life.setColumns(10);
+		textField_life.setEnabled(false);
+
+		panel_4.setOpaque(false);
+		label_6.setOpaque(false);
+		textField_life.setOpaque(false);
+
+		JPanel panel_10 = new JPanel();
+		panel_10.setOpaque(false);
+		panel_choosing.add(panel_10);
+		panel_10.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JPanel panel_11 = new JPanel();
+		panel_choosing.add(panel_11);
+		panel_11.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_7 = new JLabel("\u98DF\u54C1\u4EA7\u5730");
+		label_7.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_11.add(label_7);
+
+		JComboBox com_query_place = new JComboBox();
+		panel_11.add(com_query_place);
+		com_query_place.setSelectedItem(null);
+		com_query_place.setEnabled(false);
+		panel_11.setOpaque(false);
+		label_7.setOpaque(false);
+		com_query_place.setOpaque(false);
+
+		JPanel panel_12 = new JPanel();
+		panel_choosing.add(panel_12);
+		panel_12.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_8 = new JLabel("\u5546\u54C1\u4EF7\u683C");
+		label_8.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_12.add(label_8);
+
+		textField_price = new JTextField();
+		panel_12.add(textField_price);
+		textField_price.setColumns(10);
+		textField_price.setEnabled(false);
+		panel_12.setOpaque(false);
+		label_8.setOpaque(false);
+		textField_price.setOpaque(false);
+
+		JPanel panel_7 = new JPanel();
+		panel_7.setOpaque(false);
+		panel_choosing.add(panel_7);
+
+		JPanel panel_8 = new JPanel();
+		panel_choosing.add(panel_8);
+		panel_8.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_9 = new JLabel("\u5546\u54C1\u6570\u91CF");
+		label_9.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_8.add(label_9);
+
+		textField_quantity = new JTextField();
+		panel_8.add(textField_quantity);
+		textField_quantity.setColumns(10);
+		textField_quantity.setEnabled(false);
+		panel_8.setOpaque(false);
+		label_9.setOpaque(false);
+		textField_quantity.setOpaque(false);
+
+		JPanel panel_13 = new JPanel();
+		panel_13.setBounds(0, 150, 685, 30);
+		panel_character.add(panel_13);
+		panel_13.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_10 = new JLabel(
+				"\u662F\u5426\u52A0\u4E0A\u65F6\u95F4\u8303\u56F4");
+		label_10.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_13.add(label_10);
+		panel_13.setOpaque(false);
+		label_10.setOpaque(false);
+
+		JPanel panel_14 = new JPanel();
+		panel_14.setOpaque(false);
+		panel_14.setBounds(0, 180, 685, 30);
+		panel_character.add(panel_14);
+		panel_14.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JPanel panel_15 = new JPanel();
+		panel_15.setOpaque(false);
+		panel_15.setVisible(false);
+		panel_15.setBounds(0, 210, 685, 30);
+		panel_character.add(panel_15);
+		panel_15.setLayout(new GridLayout(1, 3, 0, 0));
+
+		JRadioButton radioButton_yes = new JRadioButton("\u662F");
+		radioButton_yes.setOpaque(false);
+		radioButton_yes.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				panel_15.setVisible(true);
+				textField_begin.setEnabled(true);
+				textField_end.setEnabled(true);
+			}
+		});
+		radioButton_yes.setHorizontalAlignment(SwingConstants.RIGHT);
+
+		JRadioButton radioButton_No = new JRadioButton("\u5426");
+		radioButton_No.setOpaque(false);
+		radioButton_No.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				panel_15.setVisible(false);
+				textField_begin.setEnabled(false);
+				textField_end.setEnabled(false);
+			}
+		});
+		ButtonGroup judge = new ButtonGroup();
+		judge.add(radioButton_yes);
+		judge.add(radioButton_No);
+		panel_14.add(radioButton_yes);
+		panel_14.add(radioButton_No);
+
+		JPanel panel_16 = new JPanel();
+		panel_15.add(panel_16);
+		panel_16.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_11 = new JLabel("\u8D77\u59CB\u65E5\u671F");
+		label_11.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_16.add(label_11);
+
+		textField_begin = new JTextField();
+		panel_16.add(textField_begin);
+		textField_begin.setColumns(10);
+		textField_begin.setEnabled(false);
+		textField_begin.setOpaque(false);
+		panel_16.setOpaque(false);
+		label_11.setOpaque(false);
+
+		CalendarPanel p5 = new CalendarPanel(textField_begin, "yyyy-MM-dd");
+		p5.initCalendarPanel();
+		p5.setOpaque(false);
+		panel_Instant_query.add(p5);
+		p5.setBounds(0, 300, 250, 240);
+		JLabel l5 = new JLabel("日历面板");
+		p5.add(l5);
+
+		JPanel panel_17 = new JPanel();
+		panel_17.setOpaque(false);
+		panel_15.add(panel_17);
+
+		JPanel panel_18 = new JPanel();
+		panel_15.add(panel_18);
+		panel_18.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_12 = new JLabel("\u622A\u6B62\u65E5\u671F");
+		label_12.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_18.add(label_12);
+
+		textField_end = new JTextField();
+		panel_18.add(textField_end);
+		textField_end.setColumns(10);
+		textField_end.setEnabled(false);
+		textField_end.setOpaque(false);
+		panel_18.setOpaque(false);
+		label_12.setOpaque(false);
+
+		CalendarPanel p7 = new CalendarPanel(textField_end, "yyyy-MM-dd");
+		p7.initCalendarPanel();
+		p7.setOpaque(false);
+		panel_Instant_query.add(p7);
+		p7.setBounds(435, 300, 250, 240);
+		JLabel l7 = new JLabel("日历面板");
+		p7.add(l7);
+
+		JPanel panel_19 = new JPanel();
+		panel_19.setBounds(0, 350, 685, 30);
+		panel_Instant_query.add(panel_19);
+		panel_19.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_13 = new JLabel("\u67E5\u8BE2\u7ED3\u679C");
+		label_13.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_19.add(label_13);
+		label_13.setOpaque(false);
+		panel_19.setOpaque(false);
+
+		JPanel panel_20 = new JPanel();
+		panel_20.setOpaque(false);
+		panel_20.setBounds(0, 380, 685, 260);
+		panel_Instant_query.add(panel_20);
+		panel_20.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JPanel panel_21 = new JPanel();
+		panel_21.setOpaque(false);
+		panel_21.setBounds(300, 310, 70, 30);
+		panel_Instant_query.add(panel_21);
+		panel_21.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JPanel panel_53 = new JPanel();
+		panel_53.setBounds(0, 30, 685, 30);
+		panel_Instant_query.add(panel_53);
+		panel_53.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JPanel panel_54 = new JPanel();
+		panel_53.add(panel_54);
+		panel_54.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JRadioButton radioButton_clothes = new JRadioButton("\u670D\u88C5");
+		radioButton_clothes.setOpaque(false);
+		radioButton_clothes.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				com_query_id.setEnabled(true);
+				com_query_name.setEnabled(true);
+				com_query_brand.setEnabled(true);
+				com_query_color.setEnabled(true);
+				com_query_size.setEnabled(true);
+				com_query_people.setEnabled(true);
+				textField_life.setEnabled(false);
+				com_query_place.setEnabled(false);
+				textField_price.setEnabled(true);
+				textField_quantity.setEnabled(true);
+
+				com_query_id.removeAllItems();
+				com_query_name.removeAllItems();
+				com_query_brand.removeAllItems();
+				com_query_color.removeAllItems();
+				com_query_size.removeAllItems();
+				com_query_people.removeAllItems();
+
+				try {
+					set_clothes_id(com_query_id);
+					set_clothes_name(com_query_name);
+					set_clothes_brand(com_query_brand);
+					set_clothes_color(com_query_color);
+					set_clothes_size(com_query_size);
+					set_clothes_people(com_query_people);
+				} catch (SQLException e1) {
+					e1.printStackTrace();
+				}
+				com_query_id.setSelectedItem(null);
+				com_query_name.setSelectedItem(null);
+				com_query_brand.setSelectedItem(null);
+				com_query_color.setSelectedItem(null);
+				com_query_size.setSelectedItem(null);
+				com_query_people.setSelectedItem(null);
+				com_query_place.setSelectedItem(null);
+			}
+		});
+		radioButton_clothes.setHorizontalAlignment(SwingConstants.RIGHT);
+		panel_54.add(radioButton_clothes);
+
+		JPanel panel_55 = new JPanel();
+		panel_53.add(panel_55);
+		panel_55.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JRadioButton radioButton_food = new JRadioButton("\u98DF\u54C1");
+		panel_53.setOpaque(false);
+		panel_54.setOpaque(false);
+		panel_55.setOpaque(false);
+		radioButton_food.setOpaque(false);
+		radioButton_food.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				com_query_id.setEnabled(true);
+				com_query_name.setEnabled(true);
+				com_query_brand.setEnabled(true);
+				com_query_color.setEnabled(false);
+				com_query_size.setEnabled(false);
+				com_query_people.setEnabled(false);
+				textField_life.setEnabled(true);
+				com_query_place.setEnabled(true);
+				textField_price.setEnabled(true);
+				textField_quantity.setEnabled(true);
+
+				com_query_id.removeAllItems();
+				com_query_name.removeAllItems();
+				com_query_brand.removeAllItems();
+				com_query_place.removeAllItems();
+				try {
+					set_food_id(com_query_id);
+					set_food_name(com_query_name);
+					set_food_brand(com_query_brand);
+					set_food_place(com_query_place);
+				} catch (SQLException e1) {
+					e1.printStackTrace();
+				}
+				com_query_id.setSelectedItem(null);
+				com_query_name.setSelectedItem(null);
+				com_query_brand.setSelectedItem(null);
+				com_query_color.setSelectedItem(null);
+				com_query_size.setSelectedItem(null);
+				com_query_people.setSelectedItem(null);
+				com_query_place.setSelectedItem(null);
+			}
+		});
+		panel_55.add(radioButton_food);
+		ButtonGroup judgeKind = new ButtonGroup();
+		judgeKind.add(radioButton_clothes);
+		judgeKind.add(radioButton_food);
+
+		DefaultTableModel model_Instant_query = new DefaultTableModel();
+		JTable table_Instant_query = new JTable(model_Instant_query);
+		JScrollPane scrollPane_Instant_query = new JScrollPane(
+				table_Instant_query);
+		panel_20.add(scrollPane_Instant_query);
+		scrollPane_Instant_query.setOpaque(false);
+		scrollPane_Instant_query.getViewport().setOpaque(false);
+		table_Instant_query.setOpaque(false);
+		table_Instant_query.setDefaultRenderer(Object.class, render);
+		/******
+		 * 服装不加时间——列名
+		 */
+		Vector<String> names_query_clothes = new Vector<String>();
+		names_query_clothes.add("商品编号");
+		names_query_clothes.add("名称");
+		names_query_clothes.add("品牌");
+		names_query_clothes.add("颜色");
+		names_query_clothes.add("大小");
+		names_query_clothes.add("适合人群");
+		names_query_clothes.add("价格");
+		names_query_clothes.add("数量");
+		/******
+		 * 服装加时间——列名
+		 */
+		Vector<String> names_query_clothes_time = new Vector<String>();
+		names_query_clothes_time.add("商品编号");
+		names_query_clothes_time.add("名称");
+		names_query_clothes_time.add("品牌");
+		names_query_clothes_time.add("颜色");
+		names_query_clothes_time.add("大小");
+		names_query_clothes_time.add("适合人群");
+		names_query_clothes_time.add("价格");
+		names_query_clothes_time.add("数量");
+		names_query_clothes_time.add("销售日期");
+		names_query_clothes_time.add("销售数量");
+		names_query_clothes_time.add("销售价格");
+		names_query_clothes_time.add("销售总价");
+
+		/******
+		 * 食品不加时间——列名
+		 */
+		Vector<String> names_query_food = new Vector<String>();
+		names_query_food.add("商品编号");
+		names_query_food.add("名称");
+		names_query_food.add("品牌");
+		names_query_food.add("保质期截止日期");
+		names_query_food.add("产地");
+		names_query_food.add("价格");
+		names_query_food.add("数量");
+
+		/******
+		 * 食品加时间——列名
+		 */
+		Vector<String> names_query_food_time = new Vector<String>();
+		names_query_food_time.add("商品编号");
+		names_query_food_time.add("名称");
+		names_query_food_time.add("品牌");
+		names_query_food_time.add("保质期截止日期");
+		names_query_food_time.add("产地");
+		names_query_food_time.add("价格");
+		names_query_food_time.add("数量");
+		names_query_food_time.add("销售日期");
+		names_query_food_time.add("销售数量");
+		names_query_food_time.add("销售价格");
+		names_query_food_time.add("销售总价");
+
+		JButton button = new JButton("\u67E5\u8BE2");
+		button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Connection conn = null;
+				PreparedStatement st = null;
+				ResultSet rs = null;
+
+				// SELECT语句的SELECT部分
+				String sql_select = "SELECT ";
+				// SELECT语句的FROM部分
+				String sql_from = "FROM ";
+				// SELECT语句的WHERE部分
+				String sql_where = "WHERE ";
+
+				Vector<Vector> data_query_clothes = new Vector<Vector>();
+				Vector<Vector> data_query_clothes_time = new Vector<Vector>();
+				Vector<Vector> data_query_food = new Vector<Vector>();
+				Vector<Vector> data_query_food_time = new Vector<Vector>();
+
+				String id = (String) com_query_id.getSelectedItem();
+				String brand = (String) com_query_brand.getSelectedItem();
+				String name = (String) com_query_name.getSelectedItem();
+				String color = (String) com_query_color.getSelectedItem();
+				String size = (String) com_query_size.getSelectedItem();
+				String people = (String) com_query_people.getSelectedItem();
+				String place = (String) com_query_place.getSelectedItem();
+
+				try {
+					if ((radioButton_clothes.isSelected() == true)
+							&& (radioButton_yes.isSelected() == true)) {
+						conn = getConn();
+
+						sql_select = sql_select
+								+ "C.id 商品编号,C.cname 名称,C.brand 品牌,C.color 颜色,C.size 大小,C.people 适合人群,C.price 价格,"
+								+ "C.quantity 数量,S.sale_time 销售时间,S.sale_quantity 销售数量,S.sale_price 销售单价,S.total_sale_price 销售总价";
+						sql_from = sql_from
+								+ "clothes C INNER JOIN sale_records S ON C.id = S.id";
+						sql_where = sql_where + "C.id = S.id";
+
+						if (id != null) {
+							sql_where = sql_where + " AND C.id = '" + id + "'";
+						}
+
+						if (name != null) {
+							sql_where = sql_where + " AND C.cname ='" + name
+									+ "'";
+						}
+
+						if (brand != null) {
+							sql_where = sql_where + " AND C.brand ='" + brand
+									+ "'";
+						}
+
+						if (color != null) {
+							sql_where = sql_where + " AND C.color ='" + color
+									+ "'";
+						}
+
+						if (size != null) {
+							sql_where = sql_where + " AND C.size ='" + size
+									+ "'";
+						}
+
+						if (people != null) {
+							sql_where = sql_where + " AND C.people ='" + people
+									+ "'";
+						}
+
+						if (!textField_price.getText().trim().isEmpty()) {
+							sql_where = sql_where + " AND C.price ="
+									+ textField_price.getText().trim();
+						}
+
+						if (!textField_quantity.getText().trim().isEmpty()) {
+							sql_where = sql_where + " AND C.quantity ="
+									+ textField_quantity.getText().trim();
+						}
+
+						sql_where = sql_where + " AND sale_time BETWEEN '"
+								+ textField_begin.getText().trim() + "' AND '"
+								+ textField_end.getText().trim() + "'";
+
+						String sql = sql_select + " " + sql_from + " "
+								+ sql_where;
+
+						st = (PreparedStatement) conn.prepareStatement(sql);
+						rs = st.executeQuery();
+
+						while (rs.next()) {
+							Vector row = new Vector();
+							row.add(rs.getString(1));
+							row.add(rs.getString(2));
+							row.add(rs.getString(3));
+							row.add(rs.getString(4));
+							row.add(rs.getString(5));
+							row.add(rs.getString(6));
+							row.add(rs.getInt(7));
+							row.add(rs.getInt(8));
+							row.add(rs.getString(9));
+							row.add(rs.getInt(10));
+							row.add(rs.getInt(11));
+							row.add(rs.getInt(12));
+							data_query_clothes_time.add(row);
+						}
+						model_Instant_query.setDataVector(
+								data_query_clothes_time,
+								names_query_clothes_time);
+
+					} else if ((radioButton_food.isSelected() == true)
+							&& (radioButton_yes.isSelected() == true)) {
+						conn = getConn();
+						sql_select = sql_select
+								+ "F.id 商品编号,F.fname 名称,F.brand 品牌,F.shelf_life 保质期截止日期,F.origin_place 产地,F.price 价格,"
+								+ "F.quantity 数量,S.sale_time 销售时间,S.sale_quantity 销售数量,S.sale_price 销售单价,S.total_sale_price 销售总价";
+						sql_from = sql_from
+								+ "food F INNER JOIN sale_records S ON F.id = S.id";
+						sql_where = sql_where + "F.id = S.id";
+
+						if (id != null) {
+							sql_where = sql_where + " AND F.id = '" + id + "'";
+						}
+
+						if (name != null) {
+							sql_where = sql_where + " AND F.fname ='" + name
+									+ "'";
+						}
+
+						if (brand != null) {
+							sql_where = sql_where + " AND F.brand ='" + brand
+									+ "'";
+						}
+
+						if (!textField_life.getText().trim().isEmpty()) {
+							sql_where = sql_where + " AND F.shelf_life ='"
+									+ textField_life.getText().trim() + "'";
+						}
+
+						if (place != null) {
+							sql_where = sql_where + " AND F.origin_place ='"
+									+ place + "'";
+						}
+
+						if (!textField_price.getText().trim().isEmpty()) {
+							sql_where = sql_where + " AND F.price ="
+									+ textField_price.getText().trim();
+						}
+
+						if (!textField_quantity.getText().trim().isEmpty()) {
+							sql_where = sql_where + " AND F.quantity ="
+									+ textField_quantity.getText().trim();
+						}
+
+						sql_where = sql_where + " AND sale_time BETWEEN '"
+								+ textField_begin.getText().trim() + "' AND '"
+								+ textField_end.getText().trim() + "'";
+
+						String sql = sql_select + " " + sql_from + " "
+								+ sql_where;
+
+						st = (PreparedStatement) conn.prepareStatement(sql);
+						rs = st.executeQuery();
+
+						while (rs.next()) {
+							Vector row = new Vector();
+							row.add(rs.getString(1));
+							row.add(rs.getString(2));
+							row.add(rs.getString(3));
+							row.add(rs.getString(4));
+							row.add(rs.getString(5));
+							row.add(rs.getInt(6));
+							row.add(rs.getInt(7));
+							row.add(rs.getString(8));
+							row.add(rs.getInt(9));
+							row.add(rs.getInt(10));
+							row.add(rs.getInt(11));
+							data_query_food_time.add(row);
+						}
+						model_Instant_query.setDataVector(data_query_food_time,
+								names_query_food_time);
+
+					} else if ((radioButton_clothes.isSelected() == true)
+							&& (radioButton_No.isSelected() == true)) {
+						conn = getConn();
+						sql_select = sql_select + "*";
+						sql_from = sql_from + "clothes";
+
+						if (id != null) {
+							sql_where = sql_where + "id = '" + id + "'";
+						}
+
+						if ((id != null) && (name != null)) {
+							sql_where = sql_where + " AND cname ='" + name
+									+ "'";
+						} else if ((id == null) && (name != null)) {
+							sql_where = sql_where + "cname ='" + name + "'";
+						}
+
+						if (((id != null) || (name != null)) && (brand != null)) {
+							sql_where = sql_where + " AND brand ='" + brand
+									+ "'";
+						} else if ((id == null) && (name == null)
+								&& (brand != null)) {
+							sql_where = sql_where + "brand ='" + brand + "'";
+						}
+
+						if (((id != null) || (name != null) || (brand != null))
+								&& (color != null)) {
+							sql_where = sql_where + " AND color ='" + color
+									+ "'";
+						} else if ((id == null) && (name == null)
+								&& (brand == null) && (color != null)) {
+							sql_where = sql_where + "color ='" + color + "'";
+						}
+
+						if (((id != null) || (name != null) || (brand != null) || (color != null))
+								&& (size != null)) {
+							sql_where = sql_where + " AND size ='" + size + "'";
+						} else if ((id == null) && (name == null)
+								&& (brand == null) && (color == null)
+								&& (size != null)) {
+							sql_where = sql_where + "size ='" + size + "'";
+						}
+
+						if (((id != null) || (name != null) || (brand != null)
+								|| (color != null) || (size != null))
+								&& (people != null)) {
+							sql_where = sql_where + " AND people ='" + people
+									+ "'";
+						} else if ((id == null) && (name == null)
+								&& (brand == null) && (color == null)
+								&& (size == null) && (people != null)) {
+							sql_where = sql_where + "people ='" + people + "'";
+						}
+
+						if (((id != null) || (name != null) || (brand != null)
+								|| (color != null) || (size != null) || (people != null))
+								&& (!textField_price.getText().trim().isEmpty())) {
+							sql_where = sql_where + " AND price ="
+									+ textField_price.getText().trim();
+						} else if ((id == null)
+								&& (name == null)
+								&& (brand == null)
+								&& (color == null)
+								&& (size == null)
+								&& (people == null)
+								&& (!textField_price.getText().trim().isEmpty())) {
+							sql_where = sql_where + "price ="
+									+ textField_price.getText().trim();
+						}
+
+						if (((id != null) || (name != null) || (brand != null)
+								|| (color != null) || (size != null)
+								|| (people != null) || (!textField_price
+								.getText().trim().isEmpty()))
+								&& (!textField_quantity.getText().trim()
+										.isEmpty())) {
+							sql_where = sql_where + " AND quantity ="
+									+ textField_quantity.getText().trim();
+						} else if ((id == null)
+								&& (name == null)
+								&& (brand == null)
+								&& (color == null)
+								&& (size == null)
+								&& (people == null)
+								&& (textField_price.getText().trim().isEmpty())
+								&& (!textField_quantity.getText().trim()
+										.isEmpty())) {
+							sql_where = sql_where + "quantity ="
+									+ textField_quantity.getText().trim();
+						}
+
+						String sql = sql_select + " " + sql_from + " "
+								+ sql_where;
+
+						st = (PreparedStatement) conn.prepareStatement(sql);
+						rs = st.executeQuery();
+
+						while (rs.next()) {
+							Vector row = new Vector();
+							row.add(rs.getString(1));
+							row.add(rs.getString(2));
+							row.add(rs.getString(3));
+							row.add(rs.getString(4));
+							row.add(rs.getString(5));
+							row.add(rs.getString(6));
+							row.add(rs.getInt(7));
+							row.add(rs.getInt(8));
+							data_query_clothes.add(row);
+						}
+						model_Instant_query.setDataVector(data_query_clothes,
+								names_query_clothes);
+
+					} else if ((radioButton_food.isSelected() == true)
+							&& (radioButton_No.isSelected() == true)) {
+						conn = getConn();
+
+						sql_select = sql_select + "*";
+						sql_from = sql_from + "food";
+
+						if (id != null) {
+							sql_where = sql_where + "id = '"
+									+ com_query_id.getSelectedItem().toString()
+									+ "'";
+						}
+
+						if ((id != null) && (name != null)) {
+							sql_where = sql_where + " AND fname ='" + name
+									+ "'";
+						} else if ((id == null) && (name != null)) {
+							sql_where = sql_where + "fname ='" + name + "'";
+						}
+
+						if (((id != null) || (name != null)) && (brand != null)) {
+							sql_where = sql_where + " AND brand ='" + brand
+									+ "'";
+						} else if ((id == null) && (name == null)
+								&& (brand != null)) {
+							sql_where = sql_where + "brand ='" + brand + "'";
+						}
+
+						if (((id != null) || (name != null) || (brand != null))
+								&& (!textField_life.getText().trim().isEmpty())) {
+							sql_where = sql_where + " AND shelf_life ='"
+									+ textField_life.getText().trim() + "'";
+						} else if ((id == null) && (name == null)
+								&& (brand == null)
+								&& (!textField_life.getText().trim().isEmpty())) {
+							sql_where = sql_where + "shelf_life ='"
+									+ textField_life.getText().trim() + "'";
+						}
+
+						if (((id != null) || (name != null) || (brand != null) || (!textField_life
+								.getText().trim().isEmpty()))
+								&& (place != null)) {
+							sql_where = sql_where + " AND origin_place ='"
+									+ place + "'";
+						} else if ((id == null) && (name == null)
+								&& (brand == null)
+								&& (textField_life.getText().trim().isEmpty())
+								&& (place != null)) {
+							sql_where = sql_where + "origin_place ='" + place
+									+ "'";
+						}
+
+						if (((id != null) || (name != null) || (brand != null)
+								|| (!textField_life.getText().trim().isEmpty()) || (place != null))
+								&& (!textField_price.getText().trim().isEmpty())) {
+							sql_where = sql_where + " AND price ="
+									+ textField_price.getText().trim();
+						} else if ((id == null)
+								&& (name == null)
+								&& (brand == null)
+								&& (textField_life.getText().trim().isEmpty())
+								&& (place == null)
+								&& (!textField_price.getText().trim().isEmpty())) {
+							sql_where = sql_where + "price ="
+									+ textField_price.getText().trim();
+						}
+
+						if (((id != null) || (name != null) || (brand != null)
+								|| (!textField_life.getText().trim().isEmpty())
+								|| (place != null) || (!textField_price
+								.getText().trim().isEmpty()))
+								&& (!textField_quantity.getText().trim()
+										.isEmpty())) {
+							sql_where = sql_where + " AND quantity ="
+									+ textField_quantity.getText().trim();
+						} else if ((id == null)
+								&& (name == null)
+								&& (brand == null)
+								&& (textField_life.getText().trim().isEmpty())
+								&& (place == null)
+								&& (textField_price.getText().trim().isEmpty())
+								&& (!textField_quantity.getText().trim()
+										.isEmpty())) {
+							sql_where = sql_where + "quantity ="
+									+ textField_quantity.getText().trim();
+						}
+
+						String sql = sql_select + " " + sql_from + " "
+								+ sql_where;
+
+						st = (PreparedStatement) conn.prepareStatement(sql);
+						rs = st.executeQuery();
+
+						while (rs.next()) {
+							Vector row = new Vector();
+							row.add(rs.getString(1));
+							row.add(rs.getString(2));
+							row.add(rs.getString(3));
+							row.add(rs.getString(4));
+							row.add(rs.getString(5));
+							row.add(rs.getInt(6));
+							row.add(rs.getInt(7));
+							data_query_food.add(row);
+						}
+						model_Instant_query.setDataVector(data_query_food,
+								names_query_food);
+					} else {
+						JOptionPane wrong_quer = new JOptionPane();
+						wrong_quer.showMessageDialog(panel_Instant_query,
+								"实时查询失败！", "提示", JOptionPane.ERROR_MESSAGE);
+					}
+
+				} catch (Exception er) {
+					er.printStackTrace();
+					JOptionPane wrong_query = new JOptionPane();
+					wrong_query.showMessageDialog(panel_Instant_query,
+							"实时查询失败！", "提示", JOptionPane.ERROR_MESSAGE);
+				} finally {
+					try {
+						release(conn, st, rs);
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+				}
+
+			}
+		});
+		panel_21.add(button);
+
+		JPanel panel_52 = new JPanel();
+		panel_52.setBounds(0, 0, 685, 30);
+		panel_Instant_query.add(panel_52);
+		panel_52.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_27 = new JLabel("\u9009\u62E9\u67E5\u8BE2\u79CD\u7C7B");
+		label_27.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_52.add(label_27);
+
+		panel_52.setOpaque(false);
+		label_27.setOpaque(false);
+
+		// 第三页标签：销售统计
+		JPanel panel_Count = new BackgroundPanel(image);
+		tabbedPane.add("  销售统计 ", panel_Count);
+		panel_Count.setLayout(null);
+
+		JPanel panel_22 = new JPanel();
+		panel_22.setOpaque(false);
+		panel_22.setBounds(0, 0, 685, 150);
+		panel_Count.add(panel_22);
+		panel_22.setLayout(null);
+
+		JPanel panel_23 = new JPanel();
+		panel_23.setBounds(0, 0, 685, 30);
+		panel_22.add(panel_23);
+		panel_23.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_14 = new JLabel("\u7EDF\u8BA1\u8303\u56F4");
+		label_14.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_23.add(label_14);
+
+		panel_23.setOpaque(false);
+		label_14.setOpaque(false);
+
+		JPanel panel_24 = new JPanel();
+		panel_24.setOpaque(false);
+		panel_24.setBounds(0, 30, 685, 30);
+		panel_22.add(panel_24);
+		panel_24.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JPanel panel_30 = new JPanel();
+		panel_30.setOpaque(false);
+		panel_30.setBounds(0, 60, 685, 30);
+		panel_22.add(panel_30);
+		panel_30.setLayout(new GridLayout(1, 3, 0, 0));
+
+		JPanel panel_31 = new JPanel();
+		panel_30.add(panel_31);
+		panel_31.setOpaque(false);
+
+		JPanel panel_32 = new JPanel();
+		panel_30.add(panel_32);
+		panel_32.setOpaque(false);
+		panel_32.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_18 = new JLabel("\u5546\u54C1\u7F16\u53F7");
+		label_18.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_32.add(label_18);
+		label_18.setOpaque(false);
+
+		JComboBox comboBox_count = new JComboBox();
+		panel_32.add(comboBox_count);
+		comboBox_count.setOpaque(false);
+		try {
+			set_com_id(comboBox_count);
+		} catch (SQLException e4) {
+			e4.printStackTrace();
+		}
+
+		JPanel panel_33 = new JPanel();
+		panel_30.add(panel_33);
+		panel_33.setOpaque(false);
+
+		JRadioButton radioButton_some = new JRadioButton(
+				"\u6307\u5B9A\u5546\u54C1");
+		radioButton_some.setOpaque(false);
+		radioButton_some.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				comboBox_count.setEnabled(true);
+			}
+		});
+		radioButton_some.setHorizontalAlignment(SwingConstants.RIGHT);
+
+		JRadioButton radioButton_all = new JRadioButton(
+				"\u6240\u6709\u5546\u54C1");
+		radioButton_all.setOpaque(false);
+		radioButton_all.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				comboBox_count.setEnabled(false);
+			}
+		});
+		ButtonGroup buttongroup1 = new ButtonGroup();
+		buttongroup1.add(radioButton_some);
+		buttongroup1.add(radioButton_all);
+		panel_24.add(radioButton_some);
+		panel_24.add(radioButton_all);
+
+		JPanel panel_25 = new JPanel();
+		panel_25.setBounds(0, 90, 685, 30);
+		panel_22.add(panel_25);
+		panel_25.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_15 = new JLabel("\u65F6\u95F4\u8303\u56F4");
+		label_15.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_25.add(label_15);
+		label_15.setOpaque(false);
+		panel_25.setOpaque(false);
+
+		JPanel panel_26 = new JPanel();
+		panel_26.setOpaque(false);
+		panel_26.setBounds(0, 120, 685, 30);
+		panel_22.add(panel_26);
+		panel_26.setLayout(new GridLayout(1, 3, 0, 0));
+
+		JPanel panel_27 = new JPanel();
+		panel_27.setOpaque(false);
+		panel_26.add(panel_27);
+		panel_27.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_16 = new JLabel("\u8D77\u59CB\u65E5\u671F");
+		label_16.setOpaque(false);
+		label_16.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_27.add(label_16);
+
+		textField_count_begin = new JTextField();
+		textField_count_begin.setOpaque(false);
+		panel_27.add(textField_count_begin);
+		textField_count_begin.setColumns(10);
+
+		CalendarPanel p = new CalendarPanel(textField_count_begin, "yyyy-MM-dd");
+		p.initCalendarPanel();
+		p.setOpaque(false);
+		p.setBounds(0, 150, 250, 240);
+		JLabel l = new JLabel("日历面板");
+		p.add(l);
+		panel_Count.add(p);
+
+		JPanel panel_28 = new JPanel();
+		panel_26.add(panel_28);
+		panel_28.setOpaque(false);
+
+		JPanel panel_29 = new JPanel();
+		panel_26.add(panel_29);
+		panel_29.setOpaque(false);
+		panel_29.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_17 = new JLabel("\u622A\u6B62\u65E5\u671F");
+		label_17.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_29.add(label_17);
+		label_17.setOpaque(false);
+
+		textField_count_end = new JTextField();
+		textField_count_end.setOpaque(false);
+		panel_29.add(textField_count_end);
+		textField_count_end.setColumns(10);
+
+		CalendarPanel p1 = new CalendarPanel(textField_count_end, "yyyy-MM-dd");
+		p1.initCalendarPanel();
+		p1.setOpaque(false);
+		p1.setBounds(435, 150, 250, 240);
+		JLabel l1 = new JLabel("日历面板");
+		p1.add(l1);
+		panel_Count.add(p1);
+
+		JPanel panel_34 = new JPanel();
+		panel_34.setOpaque(false);
+		panel_34.setBounds(300, 160, 70, 30);
+		panel_Count.add(panel_34);
+		panel_34.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JPanel panel_35 = new JPanel();
+		panel_35.setOpaque(false);
+		panel_35.setBounds(0, 240, 685, 400);
+		panel_Count.add(panel_35);
+		panel_35.setLayout(new GridLayout(1, 0, 0, 0));
+
+		Vector names_count = new Vector();
+		names_count.add("商品编号");
+		names_count.add("销售总量");
+		names_count.add("销售单价");
+		names_count.add("销售总价");
+
+		DefaultTableModel model_count = new DefaultTableModel();
+		model_count.setDataVector(null, names_count);
+		JTable table_count = new JTable(model_count);
+		JScrollPane scrollPane_count = new JScrollPane(table_count);
+		panel_35.add(scrollPane_count);
+
+		scrollPane_count.setOpaque(false);
+		scrollPane_count.getViewport().setOpaque(false);
+		table_count.setOpaque(false);
+		table_count.setDefaultRenderer(Object.class, render);
+
+		JButton button_1 = new JButton("\u7EDF\u8BA1");
+		button_1.setOpaque(false);
+		button_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Connection conn = null;
+				PreparedStatement st = null;
+				ResultSet rs = null;
+
+				Vector<Vector> data_count = new Vector<Vector>();
+				try {
+					if (radioButton_all.isSelected() == true) {
+						conn = getConn();
+						ArrayList result = findId();
+						String[] id = new String[result.size()];
+						for (int i = 0; i < result.size(); i++) {
+							id[i] = (String) result.get(i);
+						}
+						for (int i = 0; i < id.length; i++) {
+							String sql = "SELECT id,SUM(sale_quantity),sale_price,SUM(total_sale_price) FROM sale_records WHERE id = '"
+									+ id[i]
+									+ "' AND sale_time BETWEEN '"
+									+ textField_count_begin.getText().trim()
+									+ "' AND '"
+									+ textField_count_end.getText().trim()
+									+ "'";
+
+							st = (PreparedStatement) conn.prepareStatement(sql);
+							rs = st.executeQuery();
+
+							while (rs.next()) {
+								Vector row = new Vector();
+								if (rs.getString(1) != null) {
+									row.add(rs.getString(1));
+									row.add(rs.getInt(2));
+									row.add(rs.getInt(3));
+									row.add(rs.getInt(4));
+									data_count.addElement(row);
+								}
+							}
+						}
+						model_count.setDataVector(data_count, names_count);
+					} else if (radioButton_some.isSelected() == true) {
+						conn = getConn();
+						String sql = "SELECT id,SUM(sale_quantity),sale_price,SUM(total_sale_price) FROM sale_records WHERE id = '"
+								+ comboBox_count.getSelectedItem().toString()
+								+ "' AND sale_time BETWEEN '"
+								+ textField_count_begin.getText().trim()
+								+ "' AND '"
+								+ textField_count_end.getText().trim() + "'";
+
+						st = (PreparedStatement) conn.prepareStatement(sql);
+						rs = st.executeQuery();
+
+						while (rs.next()) {
+							Vector row = new Vector();
+							row.add(rs.getString(1));
+							row.add(rs.getInt(2));
+							row.add(rs.getInt(3));
+							row.add(rs.getInt(4));
+							data_count.addElement(row);
+						}
+						model_count.setDataVector(data_count, names_count);
+					}
+				} catch (Exception er) {
+					er.printStackTrace();
+					JOptionPane wrong_query = new JOptionPane();
+					wrong_query.showMessageDialog(panel_Instant_query,
+							"销售统计失败！", "提示", JOptionPane.ERROR_MESSAGE);
+				} finally {
+					try {
+						release(conn, st, rs);
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+				}
+			}
+		});
+		panel_34.add(button_1);
+
+		JPanel panel_112 = new JPanel();
+		panel_112.setBounds(0, 200, 685, 30);
+		panel_Count.add(panel_112);
+		panel_112.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_62 = new JLabel("\u7EDF\u8BA1\u7ED3\u679C");
+		label_62.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_112.add(label_62);
+		panel_112.setOpaque(false);
+		label_62.setOpaque(false);
+
+		// 第四页标签：采购部门
+		JPanel panel_purchasing = new BackgroundPanel(image);
+		tabbedPane.add("  采购部门 ", panel_purchasing);
+		panel_purchasing.setLayout(null);
+
+		JPanel panel_56 = new JPanel();
+		panel_56.setOpaque(false);
+		panel_56.setForeground(Color.BLACK);
+		panel_56.setBounds(0, 0, 150, 340);
+		panel_purchasing.add(panel_56);
+		panel_56.setLayout(null);
+		
+		JPanel panel_58 = new JPanel();
+		panel_58.setOpaque(false);
+		panel_58.setBounds(0, 60, 150, 110);
+		panel_56.add(panel_58);
+		panel_58.setLayout(new GridLayout(1, 0, 0, 0));
+		
+		Vector names_less5 = new Vector();
+		names_less5.add("商品编号");
+
+		update_less5(data_less5);
+		DefaultTableModel model_less5 = new DefaultTableModel();
+		model_less5.setDataVector(data_less5, names_less5);
+		JTable table_less5 = new JTable(model_less5);
+		JScrollPane scrollPane_less5 = new JScrollPane(table_less5);
+		panel_58.add(scrollPane_less5);
+		
+
+		panel_58.setOpaque(false);
+		scrollPane_less5.setOpaque(false);
+		scrollPane_less5.getViewport().setOpaque(false);
+		table_less5.setOpaque(false);
+		table_less5.setDefaultRenderer(Object.class, render);
+
+		JPanel panel_57 = new JPanel();
+		panel_57.setOpaque(false);
+		panel_57.setBounds(0, 0, 150, 30);
+		panel_56.add(panel_57);
+		panel_57.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_28 = new JLabel("\u6A21\u62DF\u9500\u552E\u5E93\u5B58");
+		label_28.setOpaque(false);
+		label_28.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_57.add(label_28);
+
+		JPanel panel_59 = new JPanel();
+		panel_59.setOpaque(false);
+		panel_59.setBounds(0, 170, 150, 30);
+		panel_56.add(panel_59);
+		panel_59.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JPanel panel_60 = new JPanel();
+		panel_60.setOpaque(false);
+		panel_60.setBounds(0, 230, 150, 110);
+		panel_56.add(panel_60);
+		panel_60.setLayout(new GridLayout(1, 0, 0, 0));
+
+		Vector names_less10 = new Vector();
+		names_less10.add("商品编号");
+
+		DefaultTableModel model_less10 = new DefaultTableModel();
+		model_less10.setDataVector(null, names_less10);
+		JTable table_less10 = new JTable(model_less10);
+		JScrollPane scrollPane_less10 = new JScrollPane(table_less10);
+		panel_60.add(scrollPane_less10);
+		panel_60.setOpaque(false);
+		scrollPane_less10.setOpaque(false);
+		scrollPane_less10.getViewport().setOpaque(false);
+		table_less10.setOpaque(false);
+		table_less10.setDefaultRenderer(Object.class, render);
+
+		JButton button_4 = new JButton("\u6BCF\u65E5\u7EDF\u8BA1\u5E93\u5B58");
+		button_4.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Connection conn = null;
+				PreparedStatement st = null;
+				ResultSet rs = null;
+
+				Vector<Vector> data_less10 = new Vector<Vector>();
+				try {
+					conn = getConn();
+
+					ArrayList result = findId();
+					String[] id = new String[result.size()];
+					for (int i = 0; i < result.size(); i++) {
+						id[i] = (String) result.get(i);
+					}
+
+					int[] quantity = new int[id.length];
+					for (int i = 0; i < id.length; i++) {
+						String sql1 = "SELECT quantity FROM commodity WHERE id = '"
+								+ id[i] + "'";
+						st = (PreparedStatement) conn.prepareStatement(sql1);
+						rs = st.executeQuery();
+						while (rs.next()) {
+							quantity[i] = rs.getInt(1);
+						}
+						Vector row = new Vector();
+						if (quantity[i] < 10) {
+							row.add(id[i]);
+							data_less10.add(row);
+						}
+					}
+					model_less10.setDataVector(data_less10, names_less10);
+				} catch (Exception er) {
+					er.printStackTrace();
+					JOptionPane wrong_query = new JOptionPane();
+					wrong_query.showMessageDialog(panel_Instant_query,
+							"每日统计库存失败！", "提示", JOptionPane.ERROR_MESSAGE);
+				} finally {
+					try {
+						release(conn, st, rs);
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+				}
+			}
+		});
+		panel_59.add(button_4);
+
+		JPanel panel_67 = new JPanel();
+		panel_67.setOpaque(false);
+		panel_67.setBounds(0, 200, 150, 30);
+		panel_56.add(panel_67);
+		panel_67.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_33 = new JLabel(
+				"\u4E0D\u8DB310\u7684\u5546\u54C1\u7F16\u53F7");
+		label_33.setOpaque(false);
+		label_33.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_67.add(label_33);
+
+		JPanel panel_68 = new JPanel();
+		panel_68.setOpaque(false);
+		panel_68.setBounds(0, 30, 150, 30);
+		panel_56.add(panel_68);
+		panel_68.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_34 = new JLabel(
+				"\u4E0D\u8DB35\u7684\u5546\u54C1\u7F16\u53F7");
+		label_34.setOpaque(false);
+		label_34.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_68.add(label_34);
+
+		JPanel panel_61 = new JPanel();
+		panel_61.setOpaque(false);
+		panel_61.setBounds(150, 0, 540, 340);
+		panel_purchasing.add(panel_61);
+		panel_61.setLayout(null);
+
+		JPanel panel_62 = new JPanel();
+		panel_62.setBounds(0, 0, 540, 30);
+		panel_61.add(panel_62);
+		panel_62.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_30 = new JLabel("\u9009\u62E9\u91C7\u8D2D\u79CD\u7C7B");
+		label_30.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_62.add(label_30);
+		panel_62.setOpaque(false);
+		label_30.setOpaque(false);
+
+		JPanel panel_63 = new JPanel();
+		panel_63.setOpaque(false);
+		panel_63.setBounds(0, 30, 540, 20);
+		panel_61.add(panel_63);
+		panel_63.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JPanel panel_65 = new JPanel();
+		panel_65.setOpaque(false);
+		panel_65.setBounds(0, 80, 540, 20);
+		panel_61.add(panel_65);
+		panel_65.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JRadioButton radioButton_purchase_clothes = new JRadioButton(
+				"\u670D\u88C5");
+		radioButton_purchase_clothes.setOpaque(false);
+		radioButton_purchase_clothes
+				.setHorizontalAlignment(SwingConstants.RIGHT);
+		panel_63.add(radioButton_purchase_clothes);
+
+		JRadioButton radioButton_purchase_food = new JRadioButton(
+				"\u98DF\u54C1");
+		radioButton_purchase_food.setOpaque(false);
+		panel_63.add(radioButton_purchase_food);
+
+		JRadioButton radioButton_new = new JRadioButton("\u662F");
+		radioButton_new.setOpaque(false);
+		radioButton_new.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (radioButton_purchase_clothes.isSelected() == true) {
+					textField_pur_id.setEnabled(true);
+					textField_pur_time.setEnabled(true);
+					textField_pur_quantity.setEnabled(true);
+					textField_pur_price.setEnabled(true);
+					textField_pur_name.setEnabled(true);
+					textField_pur_brand.setEnabled(true);
+					textField_pur_color.setEnabled(true);
+					textField_pur_size.setEnabled(true);
+					textField_pur_people.setEnabled(true);
+					textField_pur_com_price.setEnabled(true);
+					textField_pur_com_quantity.setEnabled(true);
+					textField_pur_life.setEnabled(false);
+					textField_pur_place.setEnabled(false);
+				} else if (radioButton_purchase_food.isSelected() == true) {
+					textField_pur_id.setEnabled(true);
+					textField_pur_time.setEnabled(true);
+					textField_pur_quantity.setEnabled(true);
+					textField_pur_price.setEnabled(true);
+					textField_pur_name.setEnabled(true);
+					textField_pur_brand.setEnabled(true);
+					textField_pur_color.setEnabled(false);
+					textField_pur_size.setEnabled(false);
+					textField_pur_people.setEnabled(false);
+					textField_pur_com_price.setEnabled(true);
+					textField_pur_com_quantity.setEnabled(true);
+					textField_pur_life.setEnabled(true);
+					textField_pur_place.setEnabled(true);
+				}
+			}
+		});
+		radioButton_new.setHorizontalAlignment(SwingConstants.RIGHT);
+		panel_65.add(radioButton_new);
+
+		JRadioButton radioButton_old = new JRadioButton("\u5426");
+		radioButton_old.setOpaque(false);
+		radioButton_old.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (radioButton_purchase_clothes.isSelected() == true) {
+					textField_pur_id.setEnabled(true);
+					textField_pur_time.setEnabled(true);
+					textField_pur_quantity.setEnabled(true);
+					textField_pur_price.setEnabled(true);
+					textField_pur_name.setEnabled(false);
+					textField_pur_brand.setEnabled(false);
+					textField_pur_color.setEnabled(false);
+					textField_pur_size.setEnabled(false);
+					textField_pur_people.setEnabled(false);
+					textField_pur_com_price.setEnabled(false);
+					textField_pur_com_quantity.setEnabled(false);
+					textField_pur_life.setEnabled(false);
+					textField_pur_place.setEnabled(false);
+				} else if (radioButton_purchase_food.isSelected() == true) {
+					textField_pur_id.setEnabled(true);
+					textField_pur_time.setEnabled(true);
+					textField_pur_quantity.setEnabled(true);
+					textField_pur_price.setEnabled(true);
+					textField_pur_name.setEnabled(false);
+					textField_pur_brand.setEnabled(false);
+					textField_pur_color.setEnabled(false);
+					textField_pur_size.setEnabled(false);
+					textField_pur_people.setEnabled(false);
+					textField_pur_com_price.setEnabled(false);
+					textField_pur_com_quantity.setEnabled(false);
+					textField_pur_life.setEnabled(false);
+					textField_pur_place.setEnabled(false);
+				}
+			}
+		});
+		panel_65.add(radioButton_old);
+
+		ButtonGroup judge_purchase = new ButtonGroup();
+		judge_purchase.add(radioButton_purchase_clothes);
+		judge_purchase.add(radioButton_purchase_food);
+
+		JPanel panel_64 = new JPanel();
+		panel_64.setBounds(0, 50, 540, 30);
+		panel_61.add(panel_64);
+		panel_64.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_31 = new JLabel("\u662F\u5426\u662F\u65B0\u5546\u54C1");
+		label_31.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_64.add(label_31);
+		label_31.setOpaque(false);
+		panel_64.setOpaque(false);
+
+		ButtonGroup judge_new = new ButtonGroup();
+		judge_new.add(radioButton_new);
+		judge_new.add(radioButton_old);
+
+		JPanel panel_66 = new JPanel();
+		panel_66.setBounds(0, 100, 540, 30);
+		panel_61.add(panel_66);
+		panel_66.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_32 = new JLabel("\u5546\u54C1\u91C7\u8D2D\u4FE1\u606F");
+		label_32.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_66.add(label_32);
+		label_32.setOpaque(false);
+		panel_66.setOpaque(false);
+
+		JPanel panel_69 = new JPanel();
+		panel_69.setOpaque(false);
+		panel_69.setBounds(0, 160, 540, 180);
+		panel_61.add(panel_69);
+		panel_69.setLayout(new GridLayout(6, 2, 0, 0));
+
+		JPanel panel_70 = new JPanel();
+		panel_70.setOpaque(false);
+		panel_69.add(panel_70);
+		panel_70.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_36 = new JLabel("\u8FDB\u8D27\u65F6\u95F4");
+		label_36.setOpaque(false);
+		panel_70.add(label_36);
+		label_36.setHorizontalAlignment(SwingConstants.CENTER);
+
+		textField_pur_time = new JTextField();
+		textField_pur_time.setOpaque(false);
+		panel_70.add(textField_pur_time);
+		textField_pur_time.setColumns(10);
+
+		JPanel panel_71 = new JPanel();
+		panel_71.setOpaque(false);
+		panel_69.add(panel_71);
+		panel_71.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_37 = new JLabel("\u8FDB\u8D27\u6570\u91CF");
+		label_37.setOpaque(false);
+		panel_71.add(label_37);
+		label_37.setHorizontalAlignment(SwingConstants.CENTER);
+
+		textField_pur_quantity = new JTextField();
+		textField_pur_quantity.setOpaque(false);
+		panel_71.add(textField_pur_quantity);
+		textField_pur_quantity.setColumns(10);
+
+		JPanel panel_72 = new JPanel();
+		panel_72.setOpaque(false);
+		panel_69.add(panel_72);
+		panel_72.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_38 = new JLabel("\u8FDB\u8D27\u5355\u4EF7");
+		label_38.setOpaque(false);
+		panel_72.add(label_38);
+		label_38.setHorizontalAlignment(SwingConstants.CENTER);
+
+		textField_pur_price = new JTextField();
+		textField_pur_price.setOpaque(false);
+		panel_72.add(textField_pur_price);
+		textField_pur_price.setColumns(10);
+
+		JPanel panel_77 = new JPanel();
+		panel_77.setOpaque(false);
+		panel_69.add(panel_77);
+		panel_77.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_40 = new JLabel("\u5546\u54C1\u540D\u79F0");
+		label_40.setOpaque(false);
+		label_40.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_77.add(label_40);
+
+		textField_pur_name = new JTextField();
+		textField_pur_name.setOpaque(false);
+		panel_77.add(textField_pur_name);
+		textField_pur_name.setColumns(10);
+
+		JPanel panel_73 = new JPanel();
+		panel_73.setOpaque(false);
+		panel_69.add(panel_73);
+		panel_73.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_41 = new JLabel("\u5546\u54C1\u54C1\u724C");
+		label_41.setOpaque(false);
+		label_41.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_73.add(label_41);
+
+		textField_pur_brand = new JTextField();
+		textField_pur_brand.setOpaque(false);
+		panel_73.add(textField_pur_brand);
+		textField_pur_brand.setColumns(10);
+
+		JPanel panel_74 = new JPanel();
+		panel_74.setOpaque(false);
+		panel_69.add(panel_74);
+		panel_74.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_42 = new JLabel("\u670D\u88C5\u989C\u8272");
+		label_42.setOpaque(false);
+		label_42.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_74.add(label_42);
+
+		textField_pur_color = new JTextField();
+		textField_pur_color.setOpaque(false);
+		panel_74.add(textField_pur_color);
+		textField_pur_color.setColumns(10);
+
+		JPanel panel_78 = new JPanel();
+		panel_78.setOpaque(false);
+		panel_69.add(panel_78);
+		panel_78.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_43 = new JLabel("\u670D\u88C5\u5927\u5C0F");
+		label_43.setOpaque(false);
+		label_43.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_78.add(label_43);
+
+		textField_pur_size = new JTextField();
+		textField_pur_size.setOpaque(false);
+		panel_78.add(textField_pur_size);
+		textField_pur_size.setColumns(10);
+
+		JPanel panel_75 = new JPanel();
+		panel_75.setOpaque(false);
+		panel_69.add(panel_75);
+		panel_75.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_44 = new JLabel("\u9002\u5408\u4EBA\u7FA4");
+		label_44.setOpaque(false);
+		label_44.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_75.add(label_44);
+
+		textField_pur_people = new JTextField();
+		textField_pur_people.setOpaque(false);
+		panel_75.add(textField_pur_people);
+		textField_pur_people.setColumns(10);
+
+		JPanel panel_80 = new JPanel();
+		panel_80.setOpaque(false);
+		panel_69.add(panel_80);
+		panel_80.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_45 = new JLabel("\u4FDD\u8D28\u671F\u9650");
+		label_45.setOpaque(false);
+		label_45.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_80.add(label_45);
+
+		textField_pur_life = new JTextField();
+		textField_pur_life.setOpaque(false);
+		panel_80.add(textField_pur_life);
+		textField_pur_life.setColumns(10);
+
+		JPanel panel_76 = new JPanel();
+		panel_76.setOpaque(false);
+		panel_69.add(panel_76);
+		panel_76.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_46 = new JLabel("\u98DF\u54C1\u4EA7\u5730");
+		label_46.setOpaque(false);
+		label_46.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_76.add(label_46);
+
+		textField_pur_place = new JTextField();
+		textField_pur_place.setOpaque(false);
+		panel_76.add(textField_pur_place);
+		textField_pur_place.setColumns(10);
+
+		JPanel panel_82 = new JPanel();
+		panel_82.setOpaque(false);
+		panel_69.add(panel_82);
+		panel_82.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_47 = new JLabel("\u5546\u54C1\u4EF7\u683C");
+		label_47.setOpaque(false);
+		label_47.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_82.add(label_47);
+
+		textField_pur_com_price = new JTextField();
+		textField_pur_com_price.setOpaque(false);
+		panel_82.add(textField_pur_com_price);
+		textField_pur_com_price.setColumns(10);
+
+		JPanel panel_79 = new JPanel();
+		panel_79.setOpaque(false);
+		panel_69.add(panel_79);
+		panel_79.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_48 = new JLabel("\u5546\u54C1\u6570\u91CF");
+		label_48.setOpaque(false);
+		label_48.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_79.add(label_48);
+
+		textField_pur_com_quantity = new JTextField();
+		textField_pur_com_quantity.setOpaque(false);
+		panel_79.add(textField_pur_com_quantity);
+		textField_pur_com_quantity.setColumns(10);
+
+		JPanel panel_81 = new JPanel();
+		panel_81.setOpaque(false);
+		panel_81.setBounds(0, 130, 540, 30);
+		panel_61.add(panel_81);
+		panel_81.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JPanel panel_83 = new JPanel();
+		panel_83.setOpaque(false);
+		panel_81.add(panel_83);
+		panel_83.setLayout(null);
+
+		JPanel panel_84 = new JPanel();
+		panel_84.setOpaque(false);
+		panel_84.setBounds(180, 0, 180, 30);
+		panel_83.add(panel_84);
+		panel_84.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_35 = new JLabel("\u5546\u54C1\u7F16\u53F7");
+		label_35.setOpaque(false);
+		panel_84.add(label_35);
+		label_35.setHorizontalAlignment(SwingConstants.CENTER);
+
+		textField_pur_id = new JTextField();
+		textField_pur_id.setOpaque(false);
+		panel_84.add(textField_pur_id);
+		textField_pur_id.setColumns(10);
+
+		JPanel panel_85 = new JPanel();
+		panel_85.setBounds(0, 370, 685, 30);
+		panel_purchasing.add(panel_85);
+		panel_85.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_49 = new JLabel("\u5546\u54C1\u91C7\u8D2D\u7ED3\u679C");
+		label_49.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_85.add(label_49);
+		label_49.setOpaque(false);
+		panel_85.setOpaque(false);
+
+		JPanel panel_86 = new JPanel();
+		panel_86.setBounds(0, 400, 685, 60);
+		panel_purchasing.add(panel_86);
+		panel_86.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JPanel panel_87 = new JPanel();
+		panel_87.setBounds(0, 460, 685, 30);
+		panel_purchasing.add(panel_87);
+		panel_87.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_50 = new JLabel("\u5546\u54C1\u539F\u4FE1\u606F");
+		label_50.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_87.add(label_50);
+		label_50.setOpaque(false);
+		panel_87.setOpaque(false);
+
+		JPanel panel_88 = new JPanel();
+		panel_88.setBounds(0, 490, 685, 60);
+		panel_purchasing.add(panel_88);
+		panel_88.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JPanel panel_89 = new JPanel();
+		panel_89.setBounds(0, 550, 685, 30);
+		panel_purchasing.add(panel_89);
+		panel_89.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_51 = new JLabel("\u5546\u54C1\u73B0\u4FE1\u606F");
+		label_51.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_89.add(label_51);
+		label_51.setOpaque(false);
+		panel_89.setOpaque(false);
+
+		JPanel panel_90 = new JPanel();
+		panel_90.setOpaque(false);
+		panel_90.setBounds(0, 580, 685, 60);
+		panel_purchasing.add(panel_90);
+		panel_90.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JPanel panel_91 = new JPanel();
+		panel_91.setOpaque(false);
+		panel_91.setBounds(300, 340, 70, 30);
+		panel_purchasing.add(panel_91);
+		panel_91.setLayout(new GridLayout(1, 0, 0, 0));
+
+		/******
+		 * 进货记录列名
+		 */
+		Vector names_pur = new Vector();
+		names_pur.add("商品编号");
+		names_pur.add("进货时间");
+		names_pur.add("进货数量");
+		names_pur.add("进货单价");
+		names_pur.add("进货总价");
+		/******
+		 * 商品原信息列名(服装)
+		 */
+		Vector names_pur_clothes = new Vector();
+		names_pur_clothes.add("商品编号");
+		names_pur_clothes.add("名称");
+		names_pur_clothes.add("品牌");
+		names_pur_clothes.add("颜色");
+		names_pur_clothes.add("大小");
+		names_pur_clothes.add("适合人群");
+		names_pur_clothes.add("价格");
+		names_pur_clothes.add("数量");
+		/******
+		 * 商品原信息列名(食品)
+		 */
+		Vector names_pur_food = new Vector();
+		names_pur_food.add("商品编号");
+		names_pur_food.add("名称");
+		names_pur_food.add("品牌");
+		names_pur_food.add("保质期截止日期");
+		names_pur_food.add("产地");
+		names_pur_food.add("价格");
+		names_pur_food.add("数量");
+		/******
+		 * 商品现信息列名(服装)
+		 */
+		Vector names_pur_clothes1 = new Vector();
+		names_pur_clothes1.add("商品编号");
+		names_pur_clothes1.add("名称");
+		names_pur_clothes1.add("品牌");
+		names_pur_clothes1.add("颜色");
+		names_pur_clothes1.add("大小");
+		names_pur_clothes1.add("适合人群");
+		names_pur_clothes1.add("价格");
+		names_pur_clothes1.add("数量");
+		/******
+		 * 商品现信息列名(食品)
+		 */
+		Vector names_pur_food1 = new Vector();
+		names_pur_food1.add("商品编号");
+		names_pur_food1.add("名称");
+		names_pur_food1.add("品牌");
+		names_pur_food1.add("保质期截止日期");
+		names_pur_food1.add("产地");
+		names_pur_food1.add("价格");
+		names_pur_food1.add("数量");
+
+		DefaultTableModel model_pur = new DefaultTableModel();
+		model_pur.setDataVector(null, names_pur);
+		JTable table_pur = new JTable(model_pur);
+		JScrollPane scrollPane_pur = new JScrollPane(table_pur);
+		panel_86.add(scrollPane_pur);
+		panel_86.setOpaque(false);
+		scrollPane_pur.setOpaque(false);
+		scrollPane_pur.getViewport().setOpaque(false);
+		table_pur.setOpaque(false);
+		table_pur.setDefaultRenderer(Object.class, render);
+
+		JScrollPane scrollPane_pur_result = new JScrollPane();
+		panel_88.add(scrollPane_pur_result);
+		panel_88.setOpaque(false);
+		scrollPane_pur_result.setOpaque(false);
+		scrollPane_pur_result.getViewport().setOpaque(false);
+
+		JScrollPane scrollPane_pur_result1 = new JScrollPane();
+		panel_90.add(scrollPane_pur_result1);
+		panel_90.setOpaque(false);
+		scrollPane_pur_result1.setOpaque(false);
+		scrollPane_pur_result1.getViewport().setOpaque(false);
+
+		DefaultTableModel model_pur_clothes = new DefaultTableModel();
+		JTable table_pur_clothes = new JTable(model_pur_clothes);
+		table_pur_clothes.setOpaque(false);
+		table_pur_clothes.setDefaultRenderer(Object.class, render);
+
+		DefaultTableModel model_pur_clothes1 = new DefaultTableModel();
+		JTable table_pur_clothes1 = new JTable(model_pur_clothes1);
+		table_pur_clothes1.setOpaque(false);
+		table_pur_clothes1.setDefaultRenderer(Object.class, render);
+
+		DefaultTableModel model_pur_food = new DefaultTableModel();
+		JTable table_pur_food = new JTable(model_pur_food);
+		table_pur_food.setOpaque(false);
+		table_pur_food.setDefaultRenderer(Object.class, render);
+
+		DefaultTableModel model_pur_food1 = new DefaultTableModel();
+		JTable table_pur_food1 = new JTable(model_pur_food1);
+		table_pur_food1.setOpaque(false);
+		table_pur_food1.setDefaultRenderer(Object.class, render);
+
+		JButton button_3 = new JButton("\u91C7\u8D2D");
+		button_3.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				Connection conn = null;
+				PreparedStatement st = null;
+				ResultSet rs = null;
+
+				Vector<Vector> data_pur = new Vector<Vector>();
+				Vector<Vector> data_pur_clothes = new Vector<Vector>();
+				Vector<Vector> data_pur_clothes1 = new Vector<Vector>();
+				Vector<Vector> data_pur_food = new Vector<Vector>();
+				Vector<Vector> data_pur_food1 = new Vector<Vector>();
+
+				String purchase_id = textField_pur_id.getText().trim();
+				String purchase_time = textField_pur_time.getText().trim();
+				String purchase_quantity1 = textField_pur_quantity.getText()
+						.trim();
+				String purchase_price1 = textField_pur_price.getText().trim();
+				int purchase_quantity = Integer.parseInt(purchase_quantity1);
+				int purchase_price = Integer.parseInt(purchase_price1);
+				int total_purchase_price = purchase_quantity * purchase_price;
+				String name = textField_pur_name.getText().trim();
+				String brand = textField_pur_brand.getText().trim();
+				String color = textField_pur_color.getText().trim();
+				String size = textField_pur_size.getText().trim();
+				String people = textField_pur_people.getText().trim();
+				String life = textField_pur_life.getText().trim();
+				String place = textField_pur_place.getText().trim();
+				String price = textField_pur_com_price.getText().trim();
+				String quantity = textField_pur_com_quantity.getText().trim();
+				try {
+					conn = getConn();
+
+					if(judge_less5(purchase_id) == true){
+						String sql = "DELETE FROM sale_less5 WHERE id = '"+purchase_id+"'";
+						
+						st = conn.prepareStatement(sql);
+						st.executeUpdate();
+					}
+					update_less5(data_less5);
+					model_less5.setDataVector(data_less5, names_less5);
+					if ((radioButton_old.isSelected() == true)
+							&& (radioButton_purchase_clothes.isSelected() == true)) {
+						String sql = "SELECT * FROM clothes WHERE id = '"
+								+ purchase_id + "'";
+
+						st = (PreparedStatement) conn.prepareStatement(sql);
+						rs = st.executeQuery();
+
+						while (rs.next()) {
+							Vector row = new Vector();
+							row.add(rs.getString(1));
+							row.add(rs.getString(2));
+							row.add(rs.getString(3));
+							row.add(rs.getString(4));
+							row.add(rs.getString(5));
+							row.add(rs.getString(6));
+							row.add(rs.getInt(7));
+							row.add(rs.getInt(8));
+							data_pur_clothes.add(row);
+						}
+						conn.setAutoCommit(false);
+
+						String sql1 = "INSERT INTO purchase_records VALUES ('"
+								+ purchase_id + "','" + purchase_time + "',"
+								+ purchase_quantity + "," + purchase_price
+								+ "," + total_purchase_price + ")";
+
+						String sql2 = "UPDATE commodity SET quantity = quantity +"
+								+ purchase_quantity
+								+ " WHERE id = '"
+								+ purchase_id + "'";
+
+						String sql3 = "UPDATE clothes SET quantity = quantity +"
+								+ purchase_quantity
+								+ " WHERE id = '"
+								+ purchase_id + "'";
+
+						st = (PreparedStatement) conn.prepareStatement(sql1);
+						st.executeUpdate();
+
+						st = (PreparedStatement) conn.prepareStatement(sql2);
+						st.executeUpdate();
+
+						st = (PreparedStatement) conn.prepareStatement(sql3);
+						st.executeUpdate();
+
+						conn.commit();
+
+						String sql4 = "SELECT * FROM clothes WHERE id = '"
+								+ purchase_id + "'";
+						st = (PreparedStatement) conn.prepareStatement(sql4);
+						rs = st.executeQuery();
+
+						while (rs.next()) {
+							Vector row = new Vector();
+							row.add(rs.getString(1));
+							row.add(rs.getString(2));
+							row.add(rs.getString(3));
+							row.add(rs.getString(4));
+							row.add(rs.getString(5));
+							row.add(rs.getString(6));
+							row.add(rs.getInt(7));
+							row.add(rs.getInt(8));
+							data_pur_clothes1.add(row);
+						}
+
+						Vector row_pur = new Vector();
+						row_pur.add(purchase_id);
+						row_pur.add(purchase_time);
+						row_pur.add(purchase_quantity);
+						row_pur.add(purchase_price);
+						row_pur.add(total_purchase_price);
+						data_pur.add(row_pur);
+
+						model_pur.setDataVector(data_pur, names_pur);
+						model_pur_clothes.setDataVector(data_pur_clothes,
+								names_pur_clothes);
+						model_pur_clothes1.setDataVector(data_pur_clothes1,
+								names_pur_clothes1);
+
+						scrollPane_pur_result
+								.setViewportView(table_pur_clothes);
+						scrollPane_pur_result1
+								.setViewportView(table_pur_clothes1);
+					} else if ((radioButton_old.isSelected() == true)
+							&& (radioButton_purchase_food.isSelected() == true)) {
+						String sql = "SELECT * FROM food WHERE id = '"
+								+ purchase_id + "'";
+
+						st = (PreparedStatement) conn.prepareStatement(sql);
+						rs = st.executeQuery();
+
+						while (rs.next()) {
+							Vector row = new Vector();
+							row.add(rs.getString(1));
+							row.add(rs.getString(2));
+							row.add(rs.getString(3));
+							row.add(rs.getString(4));
+							row.add(rs.getString(5));
+							row.add(rs.getInt(6));
+							row.add(rs.getInt(7));
+							data_pur_food.add(row);
+						}
+
+						conn.setAutoCommit(false);
+
+						String sql1 = "INSERT INTO purchase_records VALUES ('"
+								+ purchase_id + "','" + purchase_time + "',"
+								+ purchase_quantity + "," + purchase_price
+								+ "," + total_purchase_price + ")";
+
+						String sql2 = "UPDATE commodity SET quantity = quantity +"
+								+ purchase_quantity
+								+ " WHERE id = '"
+								+ purchase_id + "'";
+
+						String sql3 = "UPDATE food SET quantity = quantity +"
+								+ purchase_quantity + " WHERE id = '"
+								+ purchase_id + "'";
+
+						st = (PreparedStatement) conn.prepareStatement(sql1);
+						st.executeUpdate();
+
+						st = (PreparedStatement) conn.prepareStatement(sql2);
+						st.executeUpdate();
+
+						st = (PreparedStatement) conn.prepareStatement(sql3);
+						st.executeUpdate();
+
+						conn.commit();
+
+						String sql4 = "SELECT * FROM food WHERE id = '"
+								+ purchase_id + "'";
+						st = (PreparedStatement) conn.prepareStatement(sql4);
+						rs = st.executeQuery();
+
+						while (rs.next()) {
+							Vector row = new Vector();
+							row.add(rs.getString(1));
+							row.add(rs.getString(2));
+							row.add(rs.getString(3));
+							row.add(rs.getString(4));
+							row.add(rs.getString(5));
+							row.add(rs.getInt(6));
+							row.add(rs.getInt(7));
+							data_pur_food1.add(row);
+						}
+
+						Vector row_pur = new Vector();
+						row_pur.add(purchase_id);
+						row_pur.add(purchase_time);
+						row_pur.add(purchase_quantity);
+						row_pur.add(purchase_price);
+						row_pur.add(total_purchase_price);
+						data_pur.add(row_pur);
+
+						model_pur.setDataVector(data_pur, names_pur);
+						model_pur_food.setDataVector(data_pur_food,
+								names_pur_food);
+						model_pur_food1.setDataVector(data_pur_food1,
+								names_pur_food1);
+
+						scrollPane_pur_result.setViewportView(table_pur_food);
+						scrollPane_pur_result1.setViewportView(table_pur_food1);
+					} else if ((radioButton_new.isSelected() == true)
+							&& (radioButton_purchase_clothes.isSelected() == true)) {
+						conn.setAutoCommit(false);
+
+						String sql1 = "INSERT INTO purchase_records VALUES ('"
+								+ purchase_id + "','" + purchase_time + "',"
+								+ purchase_quantity + "," + purchase_price
+								+ "," + total_purchase_price + ")";
+						// 向clothes表中插入新采购的商品信息
+						String sql2 = "INSERT INTO clothes VALUES ('"
+								+ purchase_id + "','" + name + "','" + brand
+								+ "','" + color + "','" + size + "','" + people
+								+ "'," + price + "," + purchase_quantity + ")";
+						// 向commodity表中插入新采购的商品信息
+						String sql3 = "INSERT INTO commodity VALUES ('"
+								+ purchase_id + "','" + name + "','" + brand
+								+ "'," + price + "," + purchase_quantity + ")";
+
+						st = (PreparedStatement) conn.prepareStatement(sql1);
+						st.executeUpdate();
+
+						st = (PreparedStatement) conn.prepareStatement(sql2);
+						st.executeUpdate();
+
+						st = (PreparedStatement) conn.prepareStatement(sql3);
+						st.executeUpdate();
+
+						conn.commit();
+
+						Vector row_pur = new Vector();
+						row_pur.add(purchase_id);
+						row_pur.add(purchase_time);
+						row_pur.add(purchase_quantity);
+						row_pur.add(purchase_price);
+						row_pur.add(total_purchase_price);
+						data_pur.add(row_pur);
+
+						model_pur.setDataVector(data_pur, names_pur);
+
+						Vector row_new_clothes1 = new Vector();
+						row_new_clothes1.add(purchase_id);
+						row_new_clothes1.add(name);
+						row_new_clothes1.add(brand);
+						row_new_clothes1.add(color);
+						row_new_clothes1.add(size);
+						row_new_clothes1.add(people);
+						row_new_clothes1.add(price);
+						row_new_clothes1.add(quantity);
+						data_pur_clothes1.add(row_new_clothes1);
+
+						model_pur_clothes1.setDataVector(data_pur_clothes1,
+								names_pur_clothes1);
+						scrollPane_pur_result1
+								.setViewportView(table_pur_clothes1);
+					} else if ((radioButton_new.isSelected() == true)
+							&& (radioButton_purchase_food.isSelected() == true)) {
+						conn.setAutoCommit(false);
+
+						// 向purchase_records表中插入新采购的商品信息
+						String sql1 = "INSERT INTO purchase_records VALUES ('"
+								+ purchase_id + "','" + purchase_time + "',"
+								+ purchase_quantity + "," + purchase_price
+								+ "," + total_purchase_price + ")";
+						// 向food表中插入新采购的商品信息
+						String sql2 = "INSERT INTO food VALUES ('"
+								+ purchase_id + "','" + name + "','" + brand
+								+ "','" + life + "','" + place + "'," + price
+								+ "," + purchase_quantity + ")";
+						// 向commodity表中插入新采购的商品信息
+						String sql3 = "INSERT INTO commodity VALUES ('"
+								+ purchase_id + "','" + name + "','" + brand
+								+ "'," + price + "," + purchase_quantity + ")";
+
+						st = (PreparedStatement) conn.prepareStatement(sql1);
+						st.executeUpdate();
+
+						st = (PreparedStatement) conn.prepareStatement(sql2);
+						st.executeUpdate();
+
+						st = (PreparedStatement) conn.prepareStatement(sql3);
+						st.executeUpdate();
+
+						conn.commit();
+
+						Vector row_pur = new Vector();
+						row_pur.add(purchase_id);
+						row_pur.add(purchase_time);
+						row_pur.add(purchase_quantity);
+						row_pur.add(purchase_price);
+						row_pur.add(total_purchase_price);
+						data_pur.add(row_pur);
+
+						model_pur.setDataVector(data_pur, names_pur);
+
+						Vector row_new_food1 = new Vector();
+						row_new_food1.add(purchase_id);
+						row_new_food1.add(name);
+						row_new_food1.add(brand);
+						row_new_food1.add(life);
+						row_new_food1.add(place);
+						row_new_food1.add(price);
+						row_new_food1.add(quantity);
+						data_pur_food1.add(row_new_food1);
+
+						model_pur_food1.setDataVector(data_pur_food1,
+								names_pur_food1);
+						scrollPane_pur_result1.setViewportView(table_pur_food1);
+					}
+					update_com_id(com_off_id);
+					update_com_id(com_sale_id);
+					update_com_id(comboBox_count);
+				} catch (Exception e) {
+					e.printStackTrace();
+					JOptionPane wrong_query = new JOptionPane();
+					wrong_query.showMessageDialog(panel_Instant_query,
+							"商品采购失败！", "提示", JOptionPane.ERROR_MESSAGE);
+					try {
+						conn.rollback();
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+				} finally {
+					try {
+						release(conn, st, rs);
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+
+			}
+		});
+		panel_91.add(button_3);
+
+		// 第五页标签：模拟销售
+		JPanel panel_imitative_sale = new BackgroundPanel(image);
+		tabbedPane.add("  模拟销售 ", panel_imitative_sale);
+		panel_imitative_sale.setLayout(null);
+
+		JPanel panel_36 = new JPanel();
+		panel_36.setOpaque(false);
+		panel_36.setBounds(0, 0, 685, 140);
+		panel_imitative_sale.add(panel_36);
+		panel_36.setLayout(null);
+
+		JPanel panel_37 = new JPanel();
+		panel_37.setOpaque(false);
+		panel_37.setBounds(0, 0, 685, 30);
+		panel_36.add(panel_37);
+		panel_37.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_19 = new JLabel("\u9500\u552E\u4FE1\u606F");
+		label_19.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_37.add(label_19);
+		panel_37.setOpaque(false);
+		label_19.setOpaque(false);
+
+		JPanel panel_38 = new JPanel();
+		panel_38.setOpaque(false);
+		panel_38.setBounds(0, 30, 685, 60);
+		panel_36.add(panel_38);
+		panel_38.setLayout(new GridLayout(2, 3, 0, 0));
+
+		JPanel panel_39 = new JPanel();
+		panel_39.setOpaque(false);
+		panel_38.add(panel_39);
+		panel_39.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_20 = new JLabel("\u5546\u54C1\u7F16\u53F7");
+		label_20.setOpaque(false);
+		label_20.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_39.add(label_20);
+
+		
+		panel_39.add(com_sale_id);
+		try {
+			set_com_id(com_sale_id);
+		} catch (SQLException e3) {
+			e3.printStackTrace();
+		}
+		com_sale_id.setOpaque(false);
+
+		JPanel panel_40 = new JPanel();
+		panel_40.setOpaque(false);
+		panel_38.add(panel_40);
+
+		JPanel panel_41 = new JPanel();
+		panel_41.setOpaque(false);
+		panel_38.add(panel_41);
+		panel_41.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_23 = new JLabel("\u9500\u552E\u5355\u4EF7");
+		label_23.setOpaque(false);
+		label_23.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_41.add(label_23);
+
+		textField_imitative_sale_price = new JTextField();
+		textField_imitative_sale_price.setOpaque(false);
+		panel_41.add(textField_imitative_sale_price);
+		textField_imitative_sale_price.setColumns(10);
+
+		JPanel panel_42 = new JPanel();
+		panel_42.setOpaque(false);
+		panel_38.add(panel_42);
+		panel_42.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_22 = new JLabel("\u9500\u552E\u6570\u91CF");
+		label_22.setOpaque(false);
+		label_22.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_42.add(label_22);
+
+		textField_imitative_sale_quantity = new JTextField();
+		textField_imitative_sale_quantity.setOpaque(false);
+		panel_42.add(textField_imitative_sale_quantity);
+		textField_imitative_sale_quantity.setColumns(10);
+
+		JPanel panel_43 = new JPanel();
+		panel_43.setOpaque(false);
+		panel_38.add(panel_43);
+
+		JPanel panel_45 = new JPanel();
+		panel_45.setOpaque(false);
+		panel_38.add(panel_45);
+		panel_45.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_21 = new JLabel("\u9500\u552E\u65F6\u95F4");
+		label_21.setOpaque(false);
+		label_21.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_45.add(label_21);
+
+		textField_imitative_sale_time = new JTextField();
+		textField_imitative_sale_time.setOpaque(false);
+		panel_45.add(textField_imitative_sale_time);
+		textField_imitative_sale_time.setColumns(10);
+
+		CalendarPanel p6 = new CalendarPanel(textField_imitative_sale_time,
+				"yyyy-MM-dd");
+		p6.initCalendarPanel();
+		panel_imitative_sale.add(p6);
+		p6.setBounds(435, 90, 250, 240);
+		JLabel l6 = new JLabel("日历面板");
+		p6.add(l6);
+
+		JPanel panel_44 = new JPanel();
+		panel_44.setOpaque(false);
+		panel_44.setBounds(285, 100, 100, 30);
+		panel_36.add(panel_44);
+		panel_44.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JPanel panel_47 = new JPanel();
+		panel_47.setOpaque(false);
+		panel_47.setBounds(0, 200, 685, 120);
+		panel_imitative_sale.add(panel_47);
+
+		JPanel panel_49 = new JPanel();
+		panel_49.setOpaque(false);
+		panel_49.setBounds(0, 360, 685, 120);
+		panel_imitative_sale.add(panel_49);
+		panel_49.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JPanel panel_51 = new JPanel();
+		panel_51.setOpaque(false);
+		panel_51.setBounds(0, 520, 685, 120);
+		panel_imitative_sale.add(panel_51);
+		panel_51.setLayout(new GridLayout(1, 0, 0, 0));
+
+		/********
+		 * 模拟销售结果
+		 */
+		// 模拟销售结果列名
+		Vector<String> names_imitative_sale = new Vector<String>();
+		names_imitative_sale.add("商品编号");
+		names_imitative_sale.add("销售时间");
+		names_imitative_sale.add("销售数量");
+		names_imitative_sale.add("销售单价");
+		names_imitative_sale.add("销售总价");
+
+		DefaultTableModel model_imitative_sale = new DefaultTableModel();
+		model_imitative_sale.setDataVector(null, names_imitative_sale);
+		panel_47.setLayout(new GridLayout(0, 1, 0, 0));
+		JTable table_imitative_sale = new JTable(model_imitative_sale);
+		JScrollPane scrollPane_imitative_sale = new JScrollPane(
+				table_imitative_sale);
+		panel_47.add(scrollPane_imitative_sale);
+
+		panel_47.setOpaque(false);
+		scrollPane_imitative_sale.setOpaque(false);
+		scrollPane_imitative_sale.getViewport().setOpaque(false);
+		table_imitative_sale.setOpaque(false);
+		table_imitative_sale.setDefaultRenderer(Object.class, render);
+
+		/*********
+		 * 商品原信息结果(服装)
+		 */
+		Vector<String> names_imitative_sale_clothes = new Vector<String>();
+		names_imitative_sale_clothes.add("商品编号");
+		names_imitative_sale_clothes.add("名称");
+		names_imitative_sale_clothes.add("品牌");
+		names_imitative_sale_clothes.add("颜色");
+		names_imitative_sale_clothes.add("大小");
+		names_imitative_sale_clothes.add("适合人群");
+		names_imitative_sale_clothes.add("价格");
+		names_imitative_sale_clothes.add("数量");
+
+		DefaultTableModel model_imitative_sale_clothes = new DefaultTableModel();
+		JTable table_imitative_sale_clothes = new JTable(
+				model_imitative_sale_clothes);
+		table_imitative_sale_clothes.setOpaque(false);
+		table_imitative_sale_clothes.setDefaultRenderer(Object.class, render);
+
+		/*********
+		 * 商品原信息结果(食品)
+		 */
+		Vector<String> names_imitative_sale_food = new Vector<String>();
+		names_imitative_sale_food.add("商品编号");
+		names_imitative_sale_food.add("名称");
+		names_imitative_sale_food.add("品牌");
+		names_imitative_sale_food.add("保质期截止日期");
+		names_imitative_sale_food.add("产地");
+		names_imitative_sale_food.add("价格");
+		names_imitative_sale_food.add("数量");
+
+		DefaultTableModel model_imitative_sale_food = new DefaultTableModel();
+		JTable table_imitative_sale_food = new JTable(model_imitative_sale_food);
+		table_imitative_sale_food.setOpaque(false);
+		table_imitative_sale_food.setDefaultRenderer(Object.class, render);
+
+		/********
+		 * 商品现信息结果(服装)
+		 */
+		Vector<String> names_imitative_sale_clothes1 = new Vector<String>();
+		names_imitative_sale_clothes1.add("商品编号");
+		names_imitative_sale_clothes1.add("名称");
+		names_imitative_sale_clothes1.add("品牌");
+		names_imitative_sale_clothes1.add("颜色");
+		names_imitative_sale_clothes1.add("大小");
+		names_imitative_sale_clothes1.add("适合人群");
+		names_imitative_sale_clothes1.add("价格");
+		names_imitative_sale_clothes1.add("数量");
+
+		DefaultTableModel model_imitative_sale_clothes1 = new DefaultTableModel();
+		JTable table_imitative_sale_clothes1 = new JTable(
+				model_imitative_sale_clothes1);
+		table_imitative_sale_clothes1.setOpaque(false);
+		table_imitative_sale_clothes1.setDefaultRenderer(Object.class, render);
+		/********
+		 * 商品现信息结果(食品)
+		 */
+		Vector<String> names_imitative_sale_food1 = new Vector<String>();
+		names_imitative_sale_food1.add("商品编号");
+		names_imitative_sale_food1.add("名称");
+		names_imitative_sale_food1.add("品牌");
+		names_imitative_sale_food1.add("保质期截止日期");
+		names_imitative_sale_food1.add("产地");
+		names_imitative_sale_food1.add("价格");
+		names_imitative_sale_food1.add("数量");
+
+		DefaultTableModel model_imitative_sale_food1 = new DefaultTableModel();
+		JTable table_imitative_sale_food1 = new JTable(
+				model_imitative_sale_food1);
+		table_imitative_sale_food1.setOpaque(false);
+		table_imitative_sale_food1.setDefaultRenderer(Object.class, render);
+
+		JScrollPane scrollPane_imitative_sale_result = new JScrollPane();
+		panel_49.add(scrollPane_imitative_sale_result);
+		panel_49.setOpaque(false);
+		scrollPane_imitative_sale_result.setOpaque(false);
+		JScrollPane name;
+		scrollPane_imitative_sale_result.getViewport().setOpaque(false);
+
+		JScrollPane scrollPane_imitative_sale_result1 = new JScrollPane();
+		panel_51.add(scrollPane_imitative_sale_result1);
+		panel_51.setOpaque(false);
+		scrollPane_imitative_sale_result1.setOpaque(false);
+		scrollPane_imitative_sale_result1.getViewport().setOpaque(false);
+
+
+
+		JButton button_2 = new JButton("\u6A21\u62DF\u9500\u552E");
+		button_2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				Connection conn = null;
+				PreparedStatement st = null;
+				ResultSet rs = null;
+
+				// 获取文本框输入
+				String sale_id = (String) com_sale_id.getSelectedItem();
+				String sale_time = textField_imitative_sale_time.getText()
+						.trim();
+				String sale_quantity1 = textField_imitative_sale_quantity
+						.getText().trim();
+				String sale_price1 = textField_imitative_sale_price.getText()
+						.trim();
+				int sale_quantity = Integer.parseInt(sale_quantity1);
+				int sale_price = Integer.parseInt(sale_price1);
+				int total_sale_price = sale_quantity * sale_price;
+
+				/******
+				 * 模拟销售行向量集
+				 */
+				Vector<Vector> data_imitative_sale = new Vector<Vector>();
+				Vector row_imitative_sale = new Vector();
+
+				/*******
+				 * 商品原信息行向量集(服装)
+				 */
+				Vector<Vector> data_imitative_sale_clothes = new Vector<Vector>();
+				Vector row_imitative_sale_clothes = new Vector();
+
+				/*******
+				 * 商品现信息行向量集(服装)
+				 */
+				Vector<Vector> data_imitative_sale_clothes1 = new Vector<Vector>();
+				Vector row_imitative_sale_clothes1 = new Vector();
+
+				/*******
+				 * 商品原信息行向量集(食品)
+				 */
+				Vector<Vector> data_imitative_sale_food = new Vector<Vector>();
+				Vector row_imitative_sale_food = new Vector();
+
+				/*******
+				 * 商品现信息行向量集(食品)
+				 */
+				Vector<Vector> data_imitative_sale_food1 = new Vector<Vector>();
+				Vector row_imitative_sale_food1 = new Vector();
+
+				try {
+					conn = getConn();
+					if (count_quantity(sale_id) < sale_quantity) {
+						JOptionPane fail = new JOptionPane();
+						fail.showMessageDialog(panel_imitative_sale, "库存不足！",
+								"错误", JOptionPane.ERROR_MESSAGE);
+					} else {
+						if (isClothes(sale_id) == true) {
+
+							String sql = "SELECT * FROM clothes WHERE id = '"
+									+ sale_id + "'";
+							st = (PreparedStatement) conn.prepareStatement(sql);
+							rs = st.executeQuery();
+							while (rs.next()) {
+								row_imitative_sale_clothes.add(rs.getString(1));
+								row_imitative_sale_clothes.add(rs.getString(2));
+								row_imitative_sale_clothes.add(rs.getString(3));
+								row_imitative_sale_clothes.add(rs.getString(4));
+								row_imitative_sale_clothes.add(rs.getString(5));
+								row_imitative_sale_clothes.add(rs.getString(6));
+								row_imitative_sale_clothes.add(rs.getInt(7));
+								row_imitative_sale_clothes.add(rs.getInt(8));
+								data_imitative_sale_clothes
+										.add(row_imitative_sale_clothes);
+							}
+							// 开启事务
+							conn.setAutoCommit(false);
+							// 向sale_records表中插入销售记录
+							String sql1 = "INSERT INTO sale_records VALUES('"
+									+ sale_id + "','" + sale_time + "',"
+									+ sale_quantity + "," + sale_price + ","
+									+ total_sale_price + ")";
+
+							// 更新commodity表中的quantity信息
+							String sql2 = "UPDATE commodity SET quantity = quantity -"
+									+ sale_quantity
+									+ " WHERE id = '"
+									+ sale_id
+									+ "'";
+
+							// 更新clothes表中的quantity信息
+							String sql3 = "UPDATE clothes SET quantity = quantity -"
+									+ sale_quantity
+									+ " WHERE id = '"
+									+ sale_id
+									+ "'";
+
+							st = (PreparedStatement) conn
+									.prepareStatement(sql1);
+							st.executeUpdate();
+
+							st = (PreparedStatement) conn
+									.prepareStatement(sql2);
+							st.executeUpdate();
+
+							st = (PreparedStatement) conn
+									.prepareStatement(sql3);
+							st.executeUpdate();
+
+							conn.commit(); // 提交事务
+
+							String sql4 = "SELECT * FROM clothes WHERE id = '"
+									+ sale_id + "'";
+							st = (PreparedStatement) conn
+									.prepareStatement(sql4);
+							rs = st.executeQuery();
+							while (rs.next()) {
+								row_imitative_sale_clothes1.add(rs.getString(1));
+								row_imitative_sale_clothes1.add(rs.getString(2));
+								row_imitative_sale_clothes1.add(rs.getString(3));
+								row_imitative_sale_clothes1.add(rs.getString(4));
+								row_imitative_sale_clothes1.add(rs.getString(5));
+								row_imitative_sale_clothes1.add(rs.getString(6));
+								row_imitative_sale_clothes1.add(rs.getInt(7));
+								row_imitative_sale_clothes1.add(rs.getInt(8));
+								data_imitative_sale_clothes1
+										.add(row_imitative_sale_clothes1);
+							}
+
+							row_imitative_sale.add(sale_id);
+							row_imitative_sale.add(sale_time);
+							row_imitative_sale.add(sale_quantity);
+							row_imitative_sale.add(sale_price);
+							row_imitative_sale.add(total_sale_price);
+							data_imitative_sale.add(row_imitative_sale);
+							model_imitative_sale.setDataVector(
+									data_imitative_sale, names_imitative_sale);
+							model_imitative_sale_clothes.setDataVector(
+									data_imitative_sale_clothes,
+									names_imitative_sale_clothes);
+							model_imitative_sale_clothes1.setDataVector(
+									data_imitative_sale_clothes1,
+									names_imitative_sale_clothes1);
+
+							scrollPane_imitative_sale_result
+									.setViewportView(table_imitative_sale_clothes);
+							scrollPane_imitative_sale_result1
+									.setViewportView(table_imitative_sale_clothes1);
+
+						} else {
+							String sql = "SELECT * FROM food WHERE id = '"
+									+ sale_id + "'";
+							st = (PreparedStatement) conn.prepareStatement(sql);
+							rs = st.executeQuery();
+							while (rs.next()) {
+								row_imitative_sale_food.add(rs.getString(1));
+								row_imitative_sale_food.add(rs.getString(2));
+								row_imitative_sale_food.add(rs.getString(3));
+								row_imitative_sale_food.add(rs.getString(4));
+								row_imitative_sale_food.add(rs.getString(5));
+								row_imitative_sale_food.add(rs.getInt(6));
+								row_imitative_sale_food.add(rs.getInt(7));
+								data_imitative_sale_food
+										.add(row_imitative_sale_food);
+							}
+							// 开启事务
+							conn.setAutoCommit(false);
+							// 向sale_records表中插入销售记录
+							String sql1 = "INSERT INTO sale_records VALUES('"
+									+ sale_id + "','" + sale_time + "',"
+									+ sale_quantity + "," + sale_price + ","
+									+ total_sale_price + ")";
+
+							// 更新commodity表中的quantity信息
+							String sql2 = "UPDATE commodity SET quantity = quantity -"
+									+ sale_quantity
+									+ " WHERE id = '"
+									+ sale_id
+									+ "'";
+
+							// 更新food表中的quantity信息
+							String sql3 = "UPDATE food SET quantity = quantity -"
+									+ sale_quantity
+									+ " WHERE id = '"
+									+ sale_id
+									+ "'";
+
+							st = conn.prepareStatement(sql1);
+							st.executeUpdate();
+
+							st = conn.prepareStatement(sql2);
+							st.executeUpdate();
+
+							st = conn.prepareStatement(sql3);
+							st.executeUpdate();
+
+							conn.commit(); // 提交事务
+
+							String sql4 = "SELECT * FROM food WHERE id = '"
+									+ sale_id + "'";
+							st = (PreparedStatement) conn
+									.prepareStatement(sql4);
+							rs = st.executeQuery();
+							while (rs.next()) {
+								row_imitative_sale_food1.add(rs.getString(1));
+								row_imitative_sale_food1.add(rs.getString(2));
+								row_imitative_sale_food1.add(rs.getString(3));
+								row_imitative_sale_food1.add(rs.getString(4));
+								row_imitative_sale_food1.add(rs.getString(5));
+								row_imitative_sale_food1.add(rs.getInt(6));
+								row_imitative_sale_food1.add(rs.getInt(7));
+								data_imitative_sale_food1
+										.add(row_imitative_sale_food1);
+							}
+
+							row_imitative_sale.add(sale_id);
+							row_imitative_sale.add(sale_time);
+							row_imitative_sale.add(sale_quantity);
+							row_imitative_sale.add(sale_price);
+							row_imitative_sale.add(total_sale_price);
+							data_imitative_sale.add(row_imitative_sale);
+							model_imitative_sale.setDataVector(
+									data_imitative_sale, names_imitative_sale);
+							model_imitative_sale_food.setDataVector(
+									data_imitative_sale_food,
+									names_imitative_sale_food);
+							model_imitative_sale_food1.setDataVector(
+									data_imitative_sale_food1,
+									names_imitative_sale_food1);
+
+							scrollPane_imitative_sale_result
+									.setViewportView(table_imitative_sale_food);
+							scrollPane_imitative_sale_result1
+									.setViewportView(table_imitative_sale_food1);
+						}
+
+						int quantity = 0;
+
+						String sql5 = "SELECT quantity FROM commodity WHERE id = '"
+								+ sale_id + "'";
+
+						st = (PreparedStatement) conn.prepareStatement(sql5);
+						rs = st.executeQuery();
+
+						while (rs.next()) {
+							quantity = rs.getInt(1);
+						}
+						if (quantity < 5) {
+
+							try {
+								conn = getConn();
+								String sql6 = "INSERT INTO sale_less5 VALUES('"
+										+ sale_id + "')";
+
+								st = (PreparedStatement) conn
+										.prepareStatement(sql6);
+								st.executeUpdate();
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+						}
+
+						update_less5(data_less5);
+						model_less5.setDataVector(data_less5, names_less5);
+						JOptionPane success = new JOptionPane();
+						success.showMessageDialog(panel_imitative_sale,
+								"模拟销售成功！", "提示", JOptionPane.PLAIN_MESSAGE);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					// 捕获到异常之后手动通知数据库执行回滚事务的操作
+					try {
+						conn.rollback();
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+					JOptionPane wrong = new JOptionPane();
+					wrong.showMessageDialog(panel_imitative_sale, "模拟销售失败！",
+							"提示", JOptionPane.ERROR_MESSAGE);
+				} finally {
+					try {
+						release(conn, st, rs);
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+
+			}
+		});
+		panel_44.add(button_2);
+
+		JPanel panel_46 = new JPanel();
+		panel_46.setBounds(0, 170, 685, 30);
+		panel_imitative_sale.add(panel_46);
+		panel_46.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_24 = new JLabel("\u6A21\u62DF\u9500\u552E\u7ED3\u679C");
+		label_24.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_46.add(label_24);
+		label_24.setOpaque(false);
+		panel_46.setOpaque(false);
+
+		JPanel panel_48 = new JPanel();
+		panel_48.setBounds(0, 330, 685, 30);
+		panel_imitative_sale.add(panel_48);
+		panel_48.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_25 = new JLabel("\u5546\u54C1\u539F\u4FE1\u606F");
+		label_25.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_48.add(label_25);
+		panel_48.setOpaque(false);
+		label_25.setOpaque(false);
+
+		JPanel panel_50 = new JPanel();
+		panel_50.setOpaque(false);
+		panel_50.setBounds(0, 490, 685, 30);
+		panel_imitative_sale.add(panel_50);
+		panel_50.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_26 = new JLabel("\u5546\u54C1\u73B0\u4FE1\u606F");
+		label_26.setOpaque(false);
+		label_26.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_50.add(label_26);
+
+		// 第六页标签：管理部门
+		JPanel panel_management = new BackgroundPanel(image);
+		tabbedPane.add("  管理部门  ", panel_management);
+		panel_management.setLayout(null);
+
+		JPanel panel_92 = new JPanel();
+		panel_92.setOpaque(false);
+		panel_92.setBounds(160, 0, 380, 300);
+		panel_management.add(panel_92);
+		panel_92.setLayout(null);
+
+		JPanel panel_93 = new JPanel();
+		panel_93.setBounds(0, 0, 380, 30);
+		panel_92.add(panel_93);
+		panel_93.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_29 = new JLabel(
+				"\u9500\u552E\u7EDF\u8BA1\u65F6\u95F4\u8303\u56F4");
+		label_29.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_93.add(label_29);
+		label_29.setOpaque(false);
+		panel_93.setOpaque(false);
+
+		JPanel panel_94 = new JPanel();
+		panel_94.setOpaque(false);
+		panel_94.setBounds(0, 30, 380, 30);
+		panel_92.add(panel_94);
+		panel_94.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JPanel panel_95 = new JPanel();
+		panel_94.add(panel_95);
+		panel_95.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_39 = new JLabel("\u8D77\u59CB\u65E5\u671F");
+		label_39.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_95.add(label_39);
+		panel_95.setOpaque(false);
+		label_39.setOpaque(false);
+
+		textField_man_begin = new JTextField();
+		panel_95.add(textField_man_begin);
+		textField_man_begin.setColumns(10);
+
+		CalendarPanel p4 = new CalendarPanel(textField_man_begin, "yyyy-MM-dd");
+		p4.initCalendarPanel();
+		panel_92.add(p4);
+		p4.setBounds(80, 60, 250, 240);
+		JLabel l4 = new JLabel("日历面板");
+		p4.add(l4);
+
+		JPanel panel_96 = new JPanel();
+		panel_94.add(panel_96);
+		panel_96.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_52 = new JLabel("\u622A\u6B62\u65E5\u671F");
+		label_52.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_96.add(label_52);
+		panel_96.setOpaque(false);
+		label_52.setOpaque(false);
+
+		textField_man_end = new JTextField();
+		panel_96.add(textField_man_end);
+		textField_man_end.setColumns(10);
+
+		CalendarPanel p8 = new CalendarPanel(textField_man_end, "yyyy-MM-dd");
+		p8.initCalendarPanel();
+		panel_92.add(p8);
+		p8.setBounds(80, 60, 250, 240);
+		JLabel l8 = new JLabel("日历面板");
+		p6.add(l8);
+
+		JPanel panel_97 = new JPanel();
+		panel_97.setBounds(0, 70, 380, 30);
+		panel_92.add(panel_97);
+		panel_97.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_53 = new JLabel(
+				"\u7EDF\u8BA1\u4FE1\u606F\u5B58\u653E\u8DEF\u5F84");
+		label_53.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_97.add(label_53);
+		panel_97.setOpaque(false);
+		label_53.setOpaque(false);
+
+		JPanel panel_98 = new JPanel();
+		panel_98.setBounds(0, 130, 80, 30);
+		panel_92.add(panel_98);
+		panel_98.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_55 = new JLabel("\u54C1\u724C\u7EDF\u8BA1");
+		panel_98.add(label_55);
+		label_55.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_98.setOpaque(false);
+		label_55.setOpaque(false);
+
+		JPanel panel_99 = new JPanel();
+		panel_99.setBounds(0, 100, 80, 30);
+		panel_92.add(panel_99);
+		panel_99.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_54 = new JLabel("\u5546\u54C1\u7EDF\u8BA1");
+		panel_99.add(label_54);
+		label_54.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_99.setOpaque(false);
+		label_54.setOpaque(false);
+
+		JPanel panel_100 = new JPanel();
+		panel_100.setOpaque(false);
+		panel_100.setBounds(80, 130, 100, 30);
+		panel_92.add(panel_100);
+		panel_100.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JPanel panel_101 = new JPanel();
+		panel_101.setOpaque(false);
+		panel_101.setBounds(80, 100, 100, 30);
+		panel_92.add(panel_101);
+		panel_101.setLayout(new GridLayout(1, 0, 0, 0));
+
+		p4.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseEntered(MouseEvent arg0) {
+				panel_100.setVisible(false);
+				panel_101.setVisible(false);
+
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e) {
+				panel_100.setVisible(true);
+				panel_101.setVisible(true);
+			}
+		});
+		JPanel panel_102 = new JPanel();
+		panel_102.setOpaque(false);
+		panel_102.setBounds(120, 170, 120, 30);
+		panel_92.add(panel_102);
+		panel_102.setLayout(new GridLayout(1, 0, 0, 0));
+		p8.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseEntered(MouseEvent e) {
+				panel_100.setVisible(false);
+				panel_101.setVisible(false);
+				panel_102.setVisible(false);
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e) {
+				panel_100.setVisible(true);
+				panel_101.setVisible(true);
+				panel_102.setVisible(true);
+			}
+		});
+
+		JFileChooser count_com = new JFileChooser();
+		JFileChooser count_brand = new JFileChooser();
+		count_com.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+		count_brand.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+
+		JButton button_count_com = new JButton("\u8DEF\u5F84\u9009\u62E9");
+		button_count_com.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				count_com.showDialog(new JLabel(), "确定");
+			}
+		});
+		panel_101.add(button_count_com);
+
+		JButton button_count_brand = new JButton("\u8DEF\u5F84\u9009\u62E9");
+		button_count_brand.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				count_brand.showDialog(new JLabel(), "确定");
+			}
+		});
+		panel_100.add(button_count_brand);
+
+		JPanel panel_113 = new JPanel();
+		panel_113.setBounds(290, 100, 90, 30);
+		panel_92.add(panel_113);
+		panel_113.setLayout(new GridLayout(1, 0, 0, 0));
+
+		textField_excel_com = new JTextField();
+		panel_113.add(textField_excel_com);
+		textField_excel_com.setColumns(10);
+		panel_113.setOpaque(false);
+		textField_excel_com.setOpaque(false);
+
+		JPanel panel_114 = new JPanel();
+		panel_114.setBounds(290, 130, 90, 30);
+		panel_92.add(panel_114);
+		panel_114.setLayout(new GridLayout(1, 0, 0, 0));
+
+		textField_excel_brand = new JTextField();
+		panel_114.add(textField_excel_brand);
+		textField_excel_brand.setColumns(10);
+		panel_114.setOpaque(false);
+		textField_excel_brand.setOpaque(false);
+
+		JPanel panel_115 = new JPanel();
+		panel_115.setBounds(180, 100, 110, 30);
+		panel_92.add(panel_115);
+		panel_115.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel lblExcel = new JLabel("Excel\u6587\u4EF6\u540D");
+		lblExcel.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_115.add(lblExcel);
+		panel_115.setOpaque(false);
+		lblExcel.setOpaque(false);
+
+		JPanel panel_116 = new JPanel();
+		panel_116.setBounds(180, 130, 110, 30);
+		panel_92.add(panel_116);
+		panel_116.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel lblExcel_1 = new JLabel("Excel\u6587\u4EF6\u540D");
+		lblExcel_1.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_116.add(lblExcel_1);
+		panel_116.setOpaque(false);
+		lblExcel_1.setOpaque(false);
+
+		JPanel panel_103 = new JPanel();
+		panel_103.setBounds(0, 220, 685, 30);
+		panel_management.add(panel_103);
+		panel_103.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_56 = new JLabel("\u5546\u54C1\u4E0B\u67B6");
+		label_56.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_103.add(label_56);
+		panel_103.setOpaque(false);
+		label_56.setOpaque(false);
+
+		JPanel panel_104 = new JPanel();
+		panel_104.setBounds(0, 250, 685, 30);
+		panel_management.add(panel_104);
+		panel_104.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_57 = new JLabel("\u4E0B\u67B6\u5546\u54C1\u4FE1\u606F");
+		label_57.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_104.add(label_57);
+		panel_104.setOpaque(false);
+		label_57.setOpaque(false);
+
+		JPanel panel_105 = new JPanel();
+		panel_105.setOpaque(false);
+		panel_105.setBounds(0, 280, 685, 30);
+		panel_management.add(panel_105);
+		panel_105.setLayout(new GridLayout(1, 3, 0, 0));
+
+		JPanel panel_106 = new JPanel();
+		panel_105.add(panel_106);
+		panel_106.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_58 = new JLabel("\u5546\u54C1\u7F16\u53F7");
+		label_58.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_106.add(label_58);
+		panel_106.setOpaque(false);
+		label_58.setOpaque(false);
+
+		panel_106.add(com_off_id);
+		try {
+			set_com_id(com_off_id);
+		} catch (SQLException e2) {
+			e2.printStackTrace();
+		}
+		com_off_id.setOpaque(false);
+
+		JPanel panel_107 = new JPanel();
+		panel_105.add(panel_107);
+		panel_107.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_59 = new JLabel("\u4E0B\u67B6\u65F6\u95F4");
+		label_59.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_107.add(label_59);
+		panel_107.setOpaque(false);
+		label_59.setOpaque(false);
+
+		textField_man_time = new JTextField();
+		textField_man_time.setOpaque(false);
+		panel_107.add(textField_man_time);
+		textField_man_time.setColumns(10);
+
+		CalendarPanel p3 = new CalendarPanel(textField_man_time, "yyyy-MM-dd");
+		p3.initCalendarPanel();
+		p3.setOpaque(false);
+		panel_management.add(p3);
+		p3.setBounds(227, 310, 250, 240);
+		JLabel l3 = new JLabel("日历面板");
+		p3.add(l3);
+
+		JPanel panel_108 = new JPanel();
+		panel_105.add(panel_108);
+		panel_108.setLayout(new GridLayout(1, 2, 0, 0));
+
+		JLabel label_60 = new JLabel("\u4E0B\u67B6\u539F\u56E0");
+		label_60.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_108.add(label_60);
+
+		textField_man_reason = new JTextField();
+		panel_108.add(textField_man_reason);
+		textField_man_reason.setColumns(10);
+		panel_108.setOpaque(false);
+		label_60.setOpaque(false);
+		textField_man_reason.setOpaque(false);
+
+		JPanel panel_109 = new JPanel();
+		panel_109.setBounds(285, 360, 100, 30);
+		panel_management.add(panel_109);
+		panel_109.setLayout(new GridLayout(0, 1, 0, 0));
+
+		p3.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseEntered(MouseEvent e) {
+				panel_109.setVisible(false);
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e) {
+				panel_109.setVisible(true);
+			}
+		});
+
+		JPanel panel_111 = new JPanel();
+		panel_111.setBounds(0, 420, 685, 220);
+		panel_management.add(panel_111);
+		panel_111.setLayout(new GridLayout(1, 0, 0, 0));
+		/*****
+		 * 下架商品表(服装)
+		 */
+		Vector names_off_clothes = new Vector();
+		names_off_clothes.add("商品编号");
+		names_off_clothes.add("名称");
+		names_off_clothes.add("品牌");
+		names_off_clothes.add("颜色");
+		names_off_clothes.add("大小");
+		names_off_clothes.add("适合人群");
+		names_off_clothes.add("价格");
+		names_off_clothes.add("数量");
+		names_off_clothes.add("下架时间");
+		names_off_clothes.add("下架原因");
+		/*****
+		 * 下架商品表(食品)
+		 */
+		Vector names_off_food = new Vector();
+		names_off_food.add("商品编号");
+		names_off_food.add("名称");
+		names_off_food.add("品牌");
+		names_off_food.add("保质期截止日期");
+		names_off_food.add("产地");
+		names_off_food.add("价格");
+		names_off_food.add("数量");
+		names_off_food.add("下架时间");
+		names_off_food.add("下架原因");
+
+		DefaultTableModel model_off = new DefaultTableModel();
+		JTable table_off = new JTable(model_off);
+		JScrollPane scrollPane_off = new JScrollPane(table_off);
+		panel_111.add(scrollPane_off);
+		panel_111.setOpaque(false);
+		scrollPane_off.setOpaque(false);
+		scrollPane_off.getViewport().setOpaque(false);
+		table_off.setOpaque(false);
+		table_off.setDefaultRenderer(Object.class, render);
+
+		JButton button_5 = new JButton("\u4E0B\u67B6\u5546\u54C1");
+		button_5.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				Connection conn = null;
+				PreparedStatement st = null;
+				ResultSet rs = null;
+
+				String off_id = (String) com_off_id.getSelectedItem();
+				String off_time = textField_man_time.getText().trim();
+				String off_reason = textField_man_reason.getText().trim();
+
+				Vector<Vector> data_off = new Vector<Vector>();
+				try {
+					conn = getConn();
+					if (isClothes(off_id) == true) {
+						String name = null;
+						String brand = null;
+						String color = null;
+						String size = null;
+						String people = null;
+						int price = 0;
+						int quantity = 0;
+						String sql = "SELECT * FROM clothes WHERE id = '"
+								+ off_id + "'";
+						st = (PreparedStatement) conn.prepareStatement(sql);
+						rs = st.executeQuery();
+
+						while (rs.next()) {
+							name = rs.getString(2);
+							brand = rs.getString(3);
+							color = rs.getString(4);
+							size = rs.getString(5);
+							;
+							people = rs.getString(6);
+							price = rs.getInt(7);
+							quantity = rs.getInt(8);
+							;
+						}
+						conn.setAutoCommit(false);
+
+						String sql1 = "INSERT INTO off_clothes VALUES ('"
+								+ off_id + "','" + name + "','" + brand + "','"
+								+ color + "','" + size + "','" + people + "',"
+								+ price + "," + quantity + ",'" + off_time
+								+ "','" + off_reason + "')";
+
+						String sql2 = "DELETE FROM commodity WHERE id = '"
+								+ off_id + "'";
+						// 删除clothes表中下架商品的信息
+						String sql3 = "DELETE FROM clothes WHERE id = '"
+								+ off_id + "'";
+
+						st = conn.prepareStatement(sql1);
+						st.executeUpdate();
+
+						st = conn.prepareStatement(sql2);
+						st.executeUpdate();
+
+						st = conn.prepareStatement(sql3);
+						st.executeUpdate();
+
+						conn.commit();
+						Vector row = new Vector();
+						row.add(off_id);
+						row.add(name);
+						row.add(brand);
+						row.add(color);
+						row.add(size);
+						row.add(people);
+						row.add(price);
+						row.add(quantity);
+						row.add(off_time);
+						row.add(off_reason);
+						data_off.add(row);
+
+						model_off.setDataVector(data_off, names_off_clothes);
+					} else {
+						String name = null;
+						String brand = null;
+						String life = null;
+						String place = null;
+						int price = 0;
+						int quantity = 0;
+
+						String sql = "SELECT * FROM food WHERE id = '" + off_id
+								+ "'";
+						st = (PreparedStatement) conn.prepareStatement(sql);
+						rs = st.executeQuery();
+
+						while (rs.next()) {
+							name = rs.getString(2);
+							brand = rs.getString(3);
+							life = rs.getString(4);
+							place = rs.getString(5);
+							;
+							price = rs.getInt(6);
+							quantity = rs.getInt(7);
+							;
+						}
+
+						conn.setAutoCommit(false);
+
+						String sql1 = "INSERT INTO off_food VALUES ('" + off_id
+								+ "','" + name + "','" + brand + "','" + life
+								+ "','" + place + "'," + price + "," + quantity
+								+ ",'" + off_time + "','" + off_reason + "')";
+
+						String sql2 = "DELETE FROM commodity WHERE id = '"
+								+ off_id + "'";
+						// 删除food表中下架商品的信息
+						String sql3 = "DELETE FROM food WHERE id = '" + off_id
+								+ "'";
+
+						st = conn.prepareStatement(sql1);
+						st.executeUpdate();
+
+						st = conn.prepareStatement(sql2);
+						st.executeUpdate();
+
+						st = conn.prepareStatement(sql3);
+						st.executeUpdate();
+
+						conn.commit();
+
+						Vector row = new Vector();
+						row.add(off_id);
+						row.add(name);
+						row.add(brand);
+						row.add(life);
+						row.add(place);
+						row.add(price);
+						row.add(quantity);
+						row.add(off_time);
+						row.add(off_reason);
+						data_off.add(row);
+
+						model_off.setDataVector(data_off, names_off_food);
+					}
+					update_com_id(com_off_id);
+					update_com_id(com_sale_id);
+					update_com_id(comboBox_count);
+					
+				} catch (Exception e) {
+					e.printStackTrace();
+					JOptionPane wrong_query = new JOptionPane();
+					wrong_query.showMessageDialog(panel_Instant_query,
+							"商品下架失败！", "提示", JOptionPane.ERROR_MESSAGE);
+					try {
+						conn.rollback();
+					} catch (SQLException e1) {
+						e1.printStackTrace();
+					}
+				} finally {
+					try {
+						release(conn, st, rs);
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+
+		});
+		panel_109.add(button_5);
+
+		JPanel panel_110 = new JPanel();
+		panel_110.setBounds(0, 390, 685, 30);
+		panel_management.add(panel_110);
+		panel_110.setLayout(new GridLayout(1, 0, 0, 0));
+
+		JLabel label_61 = new JLabel("\u4E0B\u67B6\u7ED3\u679C");
+		label_61.setHorizontalAlignment(SwingConstants.CENTER);
+		panel_110.add(label_61);
+		panel_61.setOpaque(false);
+		panel_110.setOpaque(false);
+
+		JButton btnExcel = new JButton("Excel\u751F\u6210");
+		btnExcel.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				Connection conn = null;
+				PreparedStatement st = null;
+				ResultSet rs = null;
+
+				String excel_name_com = textField_excel_com.getText().trim();
+				String excel_name_brand = textField_excel_brand.getText()
+						.trim();
+				String begin = textField_man_begin.getText().trim();
+				String end = textField_man_end.getText().trim();
+
+				try {
+					conn = getConn();
+
+					WritableWorkbook wwb = null;
+					// 创建可写入的Excel工作簿
+					File file_com = count_com.getSelectedFile();
+					String address_com = file_com.getAbsolutePath().toString()
+							+ "\\" + excel_name_com + ".xls";
+
+					File writeFile = new File(address_com);
+					if (!writeFile.exists()) {
+						writeFile.createNewFile();
+					}
+					// 以fileName为文件名来创建一个Workbook
+					wwb = Workbook.createWorkbook(writeFile);
+
+					String sheet_name = excel_name_com + " Sheet 1";
+					WritableSheet ws = wwb.createSheet(sheet_name, 0);
+
+					// 要插入到的Excel表格的行号，默认从0开始
+					Label labelId = new Label(0, 0, "商品编号");
+					Label labelQuantity = new Label(1, 0, "销售数量");
+					Label labelPrice = new Label(2, 0, "销售单价");
+					Label labelTotalPrice = new Label(3, 0, "销售总价");
+					ws.addCell(labelId);
+					ws.addCell(labelQuantity);
+					ws.addCell(labelPrice);
+					ws.addCell(labelTotalPrice);
+
+					String sql1 = "SELECT S.id,SUM(S.sale_quantity),S.sale_price,SUM(S.total_sale_price)"
+							+ " FROM sale_records S WHERE S.sale_time BETWEEN '"
+							+ begin + "' AND '" + end + "' GROUP BY S.id";
+
+					st = (PreparedStatement) conn.prepareStatement(sql1);
+					rs = st.executeQuery();
+
+					int i = 1;
+
+					while (rs.next()) {
+						Label labelId_i = new Label(0, i, rs.getString(1));
+						Label labelQuantity_i = new Label(1, i, rs.getString(2));
+						Label labelPrice_i = new Label(2, i, rs.getString(3));
+						Label labelTotalPrice_i = new Label(3, i, rs
+								.getString(4));
+						ws.addCell(labelId_i);
+						ws.addCell(labelQuantity_i);
+						ws.addCell(labelPrice_i);
+						ws.addCell(labelTotalPrice_i);
+						i++;
+					}
+					// 写进文档
+					wwb.write();
+					// 关闭Excel工作簿对象
+					wwb.close();
+
+					WritableWorkbook wwb1 = null;
+					// 创建可写入的Excel工作簿
+					File file_brand = count_brand.getSelectedFile();
+					String address_brand = file_brand.getAbsolutePath()
+							.toString() + "\\" + excel_name_brand + ".xls";
+
+					File writeFile1 = new File(address_brand);
+					if (!writeFile1.exists()) {
+						writeFile1.createNewFile();
+					}
+					// 以fileName为文件名来创建一个Workbook
+					wwb1 = Workbook.createWorkbook(writeFile1);
+
+					String sheet_name1 = excel_name_brand + " Sheet 1";
+					WritableSheet ws1 = wwb1.createSheet(sheet_name1, 0);
+
+					// 要插入到的Excel表格的行号，默认从0开始
+					Label labelBrand = new Label(0, 0, "商品品牌");
+					Label labelBrandSale = new Label(1, 0, "销售总价");
+					ws1.addCell(labelBrand);
+					ws1.addCell(labelBrandSale);
+
+					String sql2 = "SELECT C.brand,SUM(S.total_sale_price) FROM commodity C,sale_records S"
+							+ " WHERE C.id = S.id AND S.sale_time BETWEEN '"
+							+ begin + "' AND '" + end + "' GROUP BY C.brand";
+
+					st = (PreparedStatement) conn.prepareStatement(sql2);
+					rs = st.executeQuery();
+
+					int j = 1;
+
+					while (rs.next()) {
+						Label labelBrand_i = new Label(0, j, rs.getString(1));
+						Label labelBrandSale_i = new Label(1, j, rs
+								.getString(2));
+						ws1.addCell(labelBrand_i);
+						ws1.addCell(labelBrandSale_i);
+						j++;
+					}
+					// 写进文档
+					wwb1.write();
+					// 关闭Excel工作簿对象
+					wwb1.close();
+
+				} catch (Exception e) {
+					e.printStackTrace();
+					JOptionPane wrong_query = new JOptionPane();
+					wrong_query.showMessageDialog(panel_Instant_query,
+							"销售统计失败！", "提示", JOptionPane.ERROR_MESSAGE);
+				} finally {
+					try {
+						release(conn, st, rs);
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+		panel_102.add(btnExcel);
+
+	}
+}
